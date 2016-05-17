@@ -14,9 +14,10 @@
         android:id="@+id/text_stock_name"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:textAppearance="?android:attr/textAppearanceLarge"
         />
-    <TextView
-        android:id="@+id/text_stock_website"
+    <WebView
+        android:id="@+id/web_stock_website_stock_website"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         />

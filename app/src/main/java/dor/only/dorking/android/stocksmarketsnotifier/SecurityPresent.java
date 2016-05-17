@@ -2,6 +2,7 @@ package dor.only.dorking.android.stocksmarketsnotifier;
 
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
+import android.webkit.WebView;
 import android.widget.TextView;
 
 import dor.only.dorking.android.stocksmarketsnotifier.DataTypes.Security;
@@ -10,7 +11,7 @@ public class SecurityPresent extends AppCompatActivity {
 
     Security mTheSecurity;
     TextView mStockName;
-    TextView mStockWebsite;
+    WebView mStockWebsite;
 
     public static final String THE_SECURITY="THE SECURITY";
 
@@ -24,10 +25,14 @@ public class SecurityPresent extends AppCompatActivity {
             finish();
         }
 
-        mStockWebsite=(TextView)findViewById(R.id.text_stock_website);
+        mStockWebsite=(WebView) findViewById(R.id.web_stock_website_stock_website);
         mStockName=(TextView)findViewById(R.id.text_stock_name);
         mStockName.setText(mTheSecurity.getName());
-        mStockWebsite.setText(mTheSecurity.getMoreInfoUri());
+        mStockWebsite.loadUrl(mTheSecurity.getMoreInfoUri());
+        mStockWebsite.getSettings().setLoadWithOverviewMode(true);
+        mStockWebsite.getSettings().setUseWideViewPort(true);
+        mStockWebsite.getSettings().setBuiltInZoomControls(true);
+        mStockWebsite.getSettings().setDisplayZoomControls(false);
 
 
 
