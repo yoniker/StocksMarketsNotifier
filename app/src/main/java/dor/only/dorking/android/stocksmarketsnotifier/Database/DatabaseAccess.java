@@ -11,6 +11,8 @@ import android.database.sqlite.SQLiteOpenHelper;
 import java.util.ArrayList;
 import java.util.List;
 
+import dor.only.dorking.android.stocksmarketsnotifier.DataTypes.Security;
+
 public class DatabaseAccess {
     private SQLiteOpenHelper openHelper;
     private SQLiteDatabase database;
@@ -63,13 +65,58 @@ public class DatabaseAccess {
         List<String> list = new ArrayList<>();
         //TODO change this line so SQL injection won't be possible (now it is def possible).
         final char quote='"';
-        Cursor cursor = database.rawQuery("SELECT Name FROM nasdaqcompanies WHERE name LIKE "+quote+"%"+subStringToLookFor+"%"+quote,null);
+        Cursor cursor = database.rawQuery("SELECT * FROM nasdaqcompanies WHERE name LIKE "+quote+"%"+subStringToLookFor+"%"+quote,null);
         cursor.moveToFirst();
         while (!cursor.isAfterLast()) {
-            list.add(cursor.getString(0));
+            Security s=getSecurityFromCursor(cursor);
+            list.add(s.getName());
+
             cursor.moveToNext();
         }
         cursor.close();
         return list;
     }
+
+
+    private static String getThisColumnFromCursor(String column,Cursor cursor){
+        int index=cursor.getColumnIndex(column);
+        if(index<0){return "";}
+        return cursor.getString(index);
+
+
+    }
+
+
+    /**
+     * Get a cursor to some security specifically in the nasdaq database, and return a security
+     * Notice that this assumes a whole lot about the database (specifically column names are very rigid)
+     *
+     *
+     * @return a Nasdaq security
+
+
+
+     */
+    private static Security getSecurityFromCursor(Cursor cursor){
+        final String NAME="Name";
+        final String SYMBOL="Symbol";
+        final String SUMMARY_QUOTE="Summary_Quote";
+        final String UNITED_STATES="UNITED_STATES";
+        final String NASDAQ="NASDAQ";
+
+        Security security=new Security();
+        security.setCountry(UNITED_STATES);
+        security.setMoreInfoUri(getThisColumnFromCursor(SUMMARY_QUOTE,cursor));
+        security.setName(getThisColumnFromCursor(NAME,cursor));
+        security.setStocksMarketName(NASDAQ);
+        security.setTicker(getThisColumnFromCursor(SYMBOL,cursor));
+
+
+
+
+
+        return security;
+
+    }
+
 }
