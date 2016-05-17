@@ -61,15 +61,15 @@ public class DatabaseAccess {
      *
      * @return a List of quotes
      */
-    public List<String> getStocksInfo(String subStringToLookFor) {
-        List<String> list = new ArrayList<>();
+    public List<Security> getStocksInfo(String subStringToLookFor) {
+        List<Security> list = new ArrayList<>();
         //TODO change this line so SQL injection won't be possible (now it is def possible).
         final char quote='"';
         Cursor cursor = database.rawQuery("SELECT * FROM nasdaqcompanies WHERE name LIKE "+quote+"%"+subStringToLookFor+"%"+quote,null);
         cursor.moveToFirst();
         while (!cursor.isAfterLast()) {
             Security s=getSecurityFromCursor(cursor);
-            list.add(s.getName());
+            list.add(s);
 
             cursor.moveToNext();
         }

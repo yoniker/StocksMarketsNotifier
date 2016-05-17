@@ -8,7 +8,6 @@ import android.support.v7.app.AppCompatActivity;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.util.Log;
-import android.widget.ArrayAdapter;
 import android.widget.EditText;
 import android.widget.ListView;
 
@@ -17,6 +16,7 @@ import com.google.android.gms.common.GoogleApiAvailability;
 
 import java.util.List;
 
+import dor.only.dorking.android.stocksmarketsnotifier.DataTypes.Security;
 import dor.only.dorking.android.stocksmarketsnotifier.Database.DatabaseAccess;
 import dor.only.dorking.android.stocksmarketsnotifier.gcm.RegistrationIntentService;
 
@@ -26,7 +26,7 @@ public class MainActivity extends AppCompatActivity {
     private ListView listView;
     public static final String SENT_TOKEN_TO_SERVER = "sentTokenToServer";
     private final static int PLAY_SERVICES_RESOLUTION_REQUEST = 9000;
-    List<String> mStocksInformation;
+    List<Security> mStocksInformation;
 
 
 
@@ -35,7 +35,7 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        this.listView = (ListView) findViewById(R.id.listView);
+        listView = (ListView) findViewById(R.id.listView);
         mEditText=(EditText)findViewById(R.id.search_for_stocks);
         mEditText.addTextChangedListener(new TextWatcher() {
             @Override
@@ -55,8 +55,18 @@ public class MainActivity extends AppCompatActivity {
         });
         updateStocksList();
 
-        ArrayAdapter<String> adapter = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, mStocksInformation);
-        this.listView.setAdapter(adapter);
+        //ArrayAdapter<String> adapter = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, mStocksInformation);
+        SecurityListAdapter adapter = new SecurityListAdapter(this,mStocksInformation);
+        listView.setAdapter(adapter);
+
+       /*
+        listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                String c=(String)parent.getItemAtPosition(position);
+                int a=3;
+            }
+        }); */
 
 
         if (checkPlayServices()) {
@@ -84,7 +94,7 @@ public class MainActivity extends AppCompatActivity {
         if(mEditText==null){searchText="";} else {searchText=mEditText.getText().toString();}
         mStocksInformation=databaseAccess.getStocksInfo(searchText);
         databaseAccess.close();
-        ArrayAdapter<String> adapter = new ArrayAdapter<String>(getApplicationContext(), android.R.layout.simple_list_item_1, mStocksInformation);
+        SecurityListAdapter adapter = new SecurityListAdapter(this,mStocksInformation);
         listView.setAdapter(adapter);
 
     }

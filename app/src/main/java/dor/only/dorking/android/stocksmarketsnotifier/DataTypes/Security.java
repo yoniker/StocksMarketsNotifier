@@ -1,13 +1,47 @@
 package dor.only.dorking.android.stocksmarketsnotifier.DataTypes;
 
+import android.os.Parcel;
+import android.os.Parcelable;
+
 /**
  * Created by Yoni on 5/17/2016.
  */
-public class Security {
+public class Security implements Parcelable {
     private String name;
     private String ticker;
     private String moreInfoUri;
     private String country;
+
+
+    public int describeContents() {
+        return 0;
+    }
+
+    public void writeToParcel(Parcel out, int flags) {
+        out.writeString(getName());
+        out.writeString(getTicker());
+        out.writeString(getMoreInfoUri());
+        out.writeString(getCountry());
+    }
+
+    public static final Parcelable.Creator<Security> CREATOR
+            = new Parcelable.Creator<Security>() {
+        public Security createFromParcel(Parcel in) {
+            Security theSecurity= new Security();
+            theSecurity.setName(in.readString());
+            theSecurity.setTicker(in.readString());
+            theSecurity.setMoreInfoUri(in.readString());
+            theSecurity.setCountry(in.readString());
+
+
+            return theSecurity;
+        }
+        public Security[] newArray(int size) {
+            return new Security[size];
+        }
+
+
+    };
 
 
     public String getCountry() {
