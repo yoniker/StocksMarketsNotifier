@@ -31,7 +31,6 @@ public class SecurityListAdapter extends BaseAdapter {
         return position;
     }
 
-    // create a new ImageView for each item referenced by the Adapter
     public View getView(int position, View convertView, ViewGroup parent) {
         TextView tv;
         if (convertView == null) {
@@ -39,12 +38,15 @@ public class SecurityListAdapter extends BaseAdapter {
             //TODO if needed,create a layout file. Also see if there is a way to avoid accessing list.get(position).
             tv = new TextView(mContext);
             tv.setTextAppearance(mContext, android.R.style.TextAppearance_Large);
-            Security theSecurity=theList.get(position);
-
-            tv.setText(theSecurity.getName()+"/"+theSecurity.getTicker());
         } else {
             tv = (TextView) convertView;
         }
+
+            Security theSecurity=theList.get(position);
+
+            tv.setText(theSecurity.getName()+"/"+theSecurity.getTicker());
+
+
 
 
         return tv;

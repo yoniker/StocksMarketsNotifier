@@ -8,6 +8,8 @@ import android.support.v7.app.AppCompatActivity;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.util.Log;
+import android.view.View;
+import android.widget.AdapterView;
 import android.widget.EditText;
 import android.widget.ListView;
 
@@ -58,6 +60,15 @@ public class MainActivity extends AppCompatActivity {
         //ArrayAdapter<String> adapter = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, mStocksInformation);
         SecurityListAdapter adapter = new SecurityListAdapter(this,mStocksInformation);
         listView.setAdapter(adapter);
+        listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                Intent showSecurity=new Intent(getApplicationContext(),SecurityPresent.class);
+                Security theSecurity=(Security)parent.getItemAtPosition(position);
+                showSecurity.putExtra(SecurityPresent.THE_SECURITY,theSecurity);
+                startActivity(showSecurity);
+            }
+        });
 
        /*
         listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {

@@ -11,6 +11,8 @@ public class Security implements Parcelable {
     private String ticker;
     private String moreInfoUri;
     private String country;
+    private String stocksMarketName;
+
 
 
     public int describeContents() {
@@ -22,6 +24,7 @@ public class Security implements Parcelable {
         out.writeString(getTicker());
         out.writeString(getMoreInfoUri());
         out.writeString(getCountry());
+        out.writeString(getStocksMarketName());
     }
 
     public static final Parcelable.Creator<Security> CREATOR
@@ -32,6 +35,7 @@ public class Security implements Parcelable {
             theSecurity.setTicker(in.readString());
             theSecurity.setMoreInfoUri(in.readString());
             theSecurity.setCountry(in.readString());
+            theSecurity.setStocksMarketName(in.readString());
 
 
             return theSecurity;
@@ -63,8 +67,6 @@ public class Security implements Parcelable {
     public String getMoreInfoUri() {
         return moreInfoUri;
     }
-
-    private String stocksMarketName;
 
     public void setCountry(String country) {
         this.country = country;
