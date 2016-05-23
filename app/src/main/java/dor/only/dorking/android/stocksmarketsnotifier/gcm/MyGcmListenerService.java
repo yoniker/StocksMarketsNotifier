@@ -13,7 +13,7 @@ import android.widget.Toast;
 
 import com.google.android.gms.gcm.GcmListenerService;
 
-import dor.only.dorking.android.stocksmarketsnotifier.MainActivity;
+import dor.only.dorking.android.stocksmarketsnotifier.ChooseStockActivity;
 import dor.only.dorking.android.stocksmarketsnotifier.R;
 
 public class MyGcmListenerService extends GcmListenerService {
@@ -37,7 +37,7 @@ public class MyGcmListenerService extends GcmListenerService {
     public void onMessageReceived(String from, Bundle data) {
         // Time to unparcel the bundle!
         if (!data.isEmpty()) {
-            // TODO: gcm_default sender ID comes from the API console
+            // gcm_default sender ID came from the API console
             String senderId = getString(R.string.gcm_defaultSenderId);
             if (senderId.length() == 0) {
                 Toast.makeText(this, "SenderID string needs to be set", Toast.LENGTH_LONG).show();
@@ -71,7 +71,7 @@ public class MyGcmListenerService extends GcmListenerService {
         NotificationManager mNotificationManager =
                 (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
         PendingIntent contentIntent =
-                PendingIntent.getActivity(this, 0, new Intent(this, MainActivity.class), 0);
+                PendingIntent.getActivity(this, 0, new Intent(this, ChooseStockActivity.class), 0);
 
         // Notifications using both a large and a small icon (which yours should!) need the large
         // icon as a bitmap. So we need to create that here from the resource ID, and pass the

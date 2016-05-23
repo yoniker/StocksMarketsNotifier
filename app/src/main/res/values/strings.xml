@@ -3,4 +3,6 @@
     // TODO: Get the SenderID from the Developer Console
     <string name="gcm_defaultSenderId" translatable="false">734282912746</string>
     <string name="stock_name">Stock Name</string>
+    <string name="enter_your_name_email_here">Enter your name/email here</string>
+    <string name="text">Sign In</string>
 </resources>

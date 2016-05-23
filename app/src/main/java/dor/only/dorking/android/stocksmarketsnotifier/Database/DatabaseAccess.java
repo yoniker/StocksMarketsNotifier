@@ -106,11 +106,11 @@ public class DatabaseAccess {
 
         Security security=new Security();
         security.setCountry(UNITED_STATES);
+        security.setSecurityType(Security.SECURITY_IS_STOCK);
         security.setMoreInfoUri(getThisColumnFromCursor(SUMMARY_QUOTE,cursor));
         security.setName(getThisColumnFromCursor(NAME,cursor));
         security.setStocksMarketName(NASDAQ);
         security.setTicker(getThisColumnFromCursor(SYMBOL,cursor));
-
 
 
 
