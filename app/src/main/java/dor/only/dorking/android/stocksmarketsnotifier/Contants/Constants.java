@@ -46,7 +46,8 @@ public class Constants {
 
     public static boolean hasGCMToken(Context context){
         SharedPreferences sp=context.getSharedPreferences(SHARED_PREFS,Context.MODE_PRIVATE);
-        return sp.contains(SP_GCM_REG_TOKEN);
+        //We have a GCM Token if it is in shared preferences, and not as an empty String.
+        return !sp.getString(SP_GCM_REG_TOKEN,"").equals("");
 
 
     }
@@ -74,7 +75,7 @@ public class Constants {
         if(!userReady(context)) {return null;}
         SharedPreferences sp=context.getSharedPreferences(SHARED_PREFS,Context.MODE_PRIVATE);
         UserFollows theUser=new UserFollows();
-        if(sp.contains(SP_GCM_REG_TOKEN)) {theUser.setGCMRegisterToken(sp.getString(SP_GCM_REG_TOKEN,""));}
+        if(sp.contains(SP_GCM_REG_TOKEN)) {theUser.setGcmRegisterToken(sp.getString(SP_GCM_REG_TOKEN,""));}
         if(sp.contains(SP_MY_EMAIL_PASSWORD)){theUser.setEmailPassword(sp.getString(SP_MY_EMAIL_PASSWORD,""));}
         if(sp.contains(SP_GOOGLE_ID)){theUser.setGoogleID(sp.getString(SP_GOOGLE_ID,""));}
         if(sp.contains(SP_FACEBOOK_ID)){theUser.setFacebookID(sp.getString(SP_FACEBOOK_ID,""));}

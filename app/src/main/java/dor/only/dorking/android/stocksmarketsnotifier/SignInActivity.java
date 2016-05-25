@@ -49,7 +49,7 @@ public class SignInActivity extends AppCompatActivity implements View.OnClickLis
             // Because this is the initial creation of the app, we'll want to be certain we have
             // a token. If we do not, then we will start the IntentService that will register this
             // application with GCM.
-            if (!Constants.hasGCMToken(this) || true) {
+            if (!Constants.hasGCMToken(this)) {
                 Intent intent = new Intent(this, RegistrationIntentService.class);
                 startService(intent);
             }
