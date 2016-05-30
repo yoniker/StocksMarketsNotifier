@@ -40,8 +40,8 @@ public class SignInActivity extends AppCompatActivity implements View.OnClickLis
         mTextBox=(EditText)findViewById(R.id.etext_user_name_email);
         mSignInButton.setOnClickListener(this);
         if(Constants.hasId(this)){
-            //In this case we can just sign in for sure
-            //signIn();
+            //Automatic sign in
+            signIn();
 
         }
 

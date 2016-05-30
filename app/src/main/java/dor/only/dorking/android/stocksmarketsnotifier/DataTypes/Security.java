@@ -18,6 +18,11 @@ public class Security implements Parcelable {
     public final static String SECURITY_IS_INDEX="index";
 
 
+    //Some values for markets/countries names.
+    public final static String STOCKMARKET_NASDAQ="NASDAQ";
+    public final static String USA="USA";
+
+
 
 
     public int describeContents() {

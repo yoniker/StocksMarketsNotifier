@@ -16,6 +16,115 @@
         android:layout_height="wrap_content"
         android:textAppearance="?android:attr/textAppearanceLarge"
         />
+
+    <ProgressBar
+        android:id="@+id/progressbar_real_time_values"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center_horizontal"
+        />
+
+    <LinearLayout
+        android:id="@+id/llayout_follow_details"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        >
+
+
+    <TextView
+        android:id="@+id/text_rtinfo"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content" />
+    <HorizontalScrollView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content">
+    <LinearLayout
+        android:id="@+id/llayout_higher_value"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_margin="6dp"
+        >
+        <TextView
+            android:id="@+id/text_higher_value"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/high_limit"
+
+            />
+
+        <EditText
+            android:id="@+id/editText_higher_value_absolute"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:hint="@string/higher_value"
+            />
+
+        <EditText
+
+            android:id="@+id/editText_higher_value_percents"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:hint="@string/higher_value_percents"
+
+            />
+
+
+
+
+    </LinearLayout>
+    </HorizontalScrollView>
+
+    <HorizontalScrollView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content">
+        <LinearLayout
+            android:id="@+id/llayout_lower_value"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_margin="6dp"
+            >
+            <TextView
+                android:id="@+id/text_lower_value"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/low_limit"
+
+                />
+
+            <EditText
+                android:id="@+id/editText_lower_value_absolute"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:hint="@string/lower_value_absolute"
+                />
+
+            <EditText
+
+                android:id="@+id/editText_lower_value_percents"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:hint="@string/lower_value"
+
+                />
+
+
+
+
+        </LinearLayout>
+    </HorizontalScrollView>
+
+    <Button
+        android:id="@+id/button_start_follow"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/start_follow"
+        android:layout_gravity="center_horizontal"
+        />
+    </LinearLayout>
+
     <WebView
         android:id="@+id/web_stock_website_stock_website"
         android:layout_width="wrap_content"

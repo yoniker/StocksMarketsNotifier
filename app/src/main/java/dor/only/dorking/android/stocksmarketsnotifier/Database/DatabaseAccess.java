@@ -101,15 +101,13 @@ public class DatabaseAccess {
         final String NAME="Name";
         final String SYMBOL="Symbol";
         final String SUMMARY_QUOTE="Summary_Quote";
-        final String UNITED_STATES="UNITED_STATES";
-        final String NASDAQ="NASDAQ";
 
         Security security=new Security();
-        security.setCountry(UNITED_STATES);
+        security.setCountry(Security.USA);
         security.setSecurityType(Security.SECURITY_IS_STOCK);
         security.setMoreInfoUri(getThisColumnFromCursor(SUMMARY_QUOTE,cursor));
         security.setName(getThisColumnFromCursor(NAME,cursor));
-        security.setStocksMarketName(NASDAQ);
+        security.setStocksMarketName(Security.STOCKMARKET_NASDAQ);
         security.setTicker(getThisColumnFromCursor(SYMBOL,cursor));
 
 

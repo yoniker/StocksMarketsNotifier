@@ -19,7 +19,6 @@ import dor.only.dorking.android.stocksmarketsnotifier.Database.DatabaseAccess;
 public class ChooseStockActivity extends AppCompatActivity {
     private EditText mEditText;
     private ListView listView;
-    public static final String SENT_TOKEN_TO_SERVER = "sentTokenToServer";
     List<Security> mStocksInformation;
 
 

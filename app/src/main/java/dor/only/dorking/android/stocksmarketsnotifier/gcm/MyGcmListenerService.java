@@ -9,7 +9,6 @@ import android.graphics.BitmapFactory;
 import android.os.Bundle;
 import android.support.v4.app.NotificationCompat;
 import android.util.Log;
-import android.widget.Toast;
 
 import com.google.android.gms.gcm.GcmListenerService;
 
@@ -21,8 +20,7 @@ public class MyGcmListenerService extends GcmListenerService {
     private static final String TAG = "MyGcmListenerService";
 
     private static final String EXTRA_DATA = "data";
-    private static final String EXTRA_WEATHER = "weather";
-    private static final String EXTRA_LOCATION = "location";
+    private static final String EXTRA_MESSAGE="message";
 
     public static final int NOTIFICATION_ID = 1;
 
@@ -39,18 +37,14 @@ public class MyGcmListenerService extends GcmListenerService {
         if (!data.isEmpty()) {
             // gcm_default sender ID came from the API console
             String senderId = getString(R.string.gcm_defaultSenderId);
-            if (senderId.length() == 0) {
-                Toast.makeText(this, "SenderID string needs to be set", Toast.LENGTH_LONG).show();
-            }
             // Not a bad idea to check that the message is coming from your server.
             if ((senderId).equals(from)) {
                 // Process message and then post a notification of the received message.
                 try {
                     //JSONObject jsonObject = new JSONObject(data.getString(EXTRA_DATA));
-                    String weather = data.getString(EXTRA_WEATHER);
-                    String location = data.getString(EXTRA_LOCATION);
+                    String theMessage = data.getString(EXTRA_MESSAGE);
                     String alert =
-                             weather+ location;
+                             theMessage;
                     sendNotification(alert);
                 } catch (Exception e) {
                     // JSON parsing failed, so we just let this message go, since GCM is not one
@@ -80,7 +74,7 @@ public class MyGcmListenerService extends GcmListenerService {
         Bitmap largeIcon = BitmapFactory.decodeResource(this.getResources(), R.drawable.common_google_signin_btn_text_light_focused);
         NotificationCompat.Builder mBuilder =
                 new NotificationCompat.Builder(this)
-                        .setSmallIcon(R.drawable.mr_ic_play_light)
+                        .setSmallIcon(R.drawable.ic_plusone_small_off_client)
                         .setLargeIcon(largeIcon)
                         //toDo change notification or behavior when getting a message
                         .setContentTitle("Notification title!")
