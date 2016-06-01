@@ -1,5 +1,6 @@
 package dor.only.dorking.android.stocksmarketsnotifier;
 
+import android.content.Intent;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
@@ -18,8 +19,10 @@ import java.util.Calendar;
 import dor.only.dorking.android.stocksmarketsnotifier.ConnectionServer.ConnectionServer;
 import dor.only.dorking.android.stocksmarketsnotifier.Contants.Constants;
 import dor.only.dorking.android.stocksmarketsnotifier.DataTypes.Follow;
+import dor.only.dorking.android.stocksmarketsnotifier.DataTypes.FollowAndStatus;
 import dor.only.dorking.android.stocksmarketsnotifier.DataTypes.RealTimeSecurityData;
 import dor.only.dorking.android.stocksmarketsnotifier.DataTypes.Security;
+import dor.only.dorking.android.stocksmarketsnotifier.Database.Followsdb;
 import dor.only.dorking.android.stocksmarketsnotifier.SecurityDataGetter.SecurityDataGetter;
 
 public class SecurityPresent extends AppCompatActivity implements View.OnLongClickListener,View.OnFocusChangeListener,View.OnClickListener {
@@ -281,6 +284,18 @@ public class SecurityPresent extends AppCompatActivity implements View.OnLongCli
 
             ConnectionServer connectionServer=new ConnectionServer(this);
             connectionServer.sendToServer(theFollow);
+            FollowAndStatus followAndStatus=new FollowAndStatus();
+            followAndStatus.setFollow(theFollow);
+            //TODO change the status when we know it is successful (launch a service?)
+            followAndStatus.setStatus(FollowAndStatus.STATUS_SENT);
+            followAndStatus.setPriceStarted(mRealTimeSecurityData.getPrice());
+            Followsdb thedb=new Followsdb(this);
+            //TODO error messages etc when it comes to the database
+            thedb.addToFollowsDB(followAndStatus);
+            Intent launchFollowsList=new Intent(this,FollowsListPresent.class);
+            startActivity(launchFollowsList);
+
+
 
 
 
