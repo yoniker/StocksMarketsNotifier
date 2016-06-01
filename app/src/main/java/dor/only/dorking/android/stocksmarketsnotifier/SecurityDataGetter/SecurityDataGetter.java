@@ -11,6 +11,7 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.TimeZone;
 
+import dor.only.dorking.android.stocksmarketsnotifier.Contants.Constants;
 import dor.only.dorking.android.stocksmarketsnotifier.DataTypes.RealTimeSecurityData;
 import dor.only.dorking.android.stocksmarketsnotifier.DataTypes.Security;
 
@@ -80,11 +81,20 @@ public class SecurityDataGetter {
 
     }
 
-    //http://stackoverflow.com/questions/309424/read-convert-an-inputstream-to-a-string
-    static String convertStreamToString(java.io.InputStream is) {
-        java.util.Scanner s = new java.util.Scanner(is).useDelimiter("\\A");
-        return s.hasNext() ? s.next() : "";
-    }
+
+
+
+    /**
+     *
+     * a helper method which parser the time formatted by BarChart to a time which Java's parser can understand.
+     *
+     * */
+
+
+
+
+
+
 
 
     static public RealTimeSecurityData getDataFromYahoo(Security theSecurity){
@@ -95,6 +105,7 @@ public class SecurityDataGetter {
         final int YAHOO_DATE=2;
         final String GET="GET";
         final String YAHOO_SYMBOLS="s";
+        final  String NA="N/A";
         if(!isValidNasdaqStock(theSecurity)){return null;}
         HttpURLConnection connection=null;
         InputStream inputStream=null;
@@ -109,7 +120,7 @@ public class SecurityDataGetter {
             connection = (HttpURLConnection) url.openConnection();
             connection.setRequestMethod(GET);
             inputStream = connection.getInputStream();
-            String response = convertStreamToString(inputStream);
+            String response = Constants.convertStreamToString(inputStream);
             //Let the parsing begin! Response is in csv so...
             String[] responseSections=response.split(",");
             for(int i=0; i<responseSections.length; ++i){
@@ -123,6 +134,7 @@ public class SecurityDataGetter {
             String timeAndPrice=responseSections[YAHOO_TIME_AND_PRICE];
             //so time is simply to the left of the first space
             String time=timeAndPrice.split(" ")[0];
+            String[] theArray=timeAndPrice.split("<b>");
             //and price is to the right of <b> and then left of </b>
             String price=timeAndPrice.split("<b>")[1];
             price=price.split("</b>")[0];
@@ -139,9 +151,14 @@ public class SecurityDataGetter {
 
 
             //Change in percents is always a String,either for example "+0.23%" or "-2.43%".
-            String percentsChange=responseSections[YAHOO_PERCENTS_CHANGE];
+            String percentsChange = responseSections[YAHOO_PERCENTS_CHANGE];
             //Alright we know it's percents,let's get rid of that char
-            percentsChange=percentsChange.substring(0,percentsChange.length()-1);
+            if (percentsChange.equals(NA)) {
+                percentsChange = "0";
+            } else {
+                //Sometimes the percents change might be N/A so
+                percentsChange = percentsChange.substring(0, percentsChange.length() - 1);
+            }
 
 
             RealTimeSecurityData actualData=new RealTimeSecurityData();
@@ -160,6 +177,9 @@ public class SecurityDataGetter {
         } catch (ParseException e) {
             // TODO Auto-generated catch block if parsing date wasn't successful
             e.printStackTrace();
+        } catch (Exception e){
+            return null;
+
         }
 
         finally{

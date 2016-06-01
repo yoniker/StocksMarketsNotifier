@@ -46,7 +46,8 @@ public class RegistrationIntentService extends IntentService {
                         UserFollows theUser=Constants.getUserFromPreferences(getApplicationContext());
                         //everything is set already in user,except,maybe,GCM registeration token
                         theUser.setGcmRegisterToken(token);
-                        ConnectionServer.sendToServer(theUser);
+                        ConnectionServer connectionServer=new ConnectionServer(getApplicationContext());
+                        connectionServer.sendToServer(theUser);
 
 
                     }

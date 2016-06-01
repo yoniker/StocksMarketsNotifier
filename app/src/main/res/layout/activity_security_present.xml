@@ -46,19 +46,15 @@
         android:orientation="horizontal"
         android:layout_margin="6dp"
         >
-        <TextView
-            android:id="@+id/text_higher_value"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/high_limit"
 
-            />
 
         <EditText
             android:id="@+id/editText_higher_value_absolute"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:hint="@string/higher_value"
+            android:inputType="numberDecimal"
+
             />
 
         <EditText
@@ -67,6 +63,8 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:hint="@string/higher_value_percents"
+            android:inputType="numberDecimal"
+
 
             />
 
@@ -86,19 +84,14 @@
             android:orientation="horizontal"
             android:layout_margin="6dp"
             >
-            <TextView
-                android:id="@+id/text_lower_value"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/low_limit"
-
-                />
 
             <EditText
                 android:id="@+id/editText_lower_value_absolute"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:hint="@string/lower_value_absolute"
+                android:inputType="numberDecimal"
+
                 />
 
             <EditText
@@ -107,6 +100,8 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:hint="@string/lower_value"
+                android:inputType="numberDecimal"
+
 
                 />
 
@@ -115,15 +110,19 @@
 
         </LinearLayout>
     </HorizontalScrollView>
-
-    <Button
-        android:id="@+id/button_start_follow"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="@string/start_follow"
-        android:layout_gravity="center_horizontal"
-        />
+        <Button
+            android:id="@+id/button_start_follow"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/start_follow"
+            android:layout_gravity="center_horizontal"
+            />
     </LinearLayout>
+
+
+
+
+
 
     <WebView
         android:id="@+id/web_stock_website_stock_website"

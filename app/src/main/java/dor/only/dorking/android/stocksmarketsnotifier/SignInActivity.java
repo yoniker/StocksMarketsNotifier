@@ -62,7 +62,7 @@ public class SignInActivity extends AppCompatActivity implements View.OnClickLis
 
     private void signIn(){
         String enteredText=mTextBox.getText().toString();
-        //So if text is empty, don't do anything!
+        //So if text is empty,and there is no ID yet, don't do anything!
         boolean someTextWasEntered=enteredText!=null && !enteredText.equals("");
         if(!someTextWasEntered&&!Constants.hasId(this)){return;}
         //Save the 'id' in shared preferences if there is some text there
@@ -73,9 +73,10 @@ public class SignInActivity extends AppCompatActivity implements View.OnClickLis
         //If there is GCM also, then we have a user ready,just add this ID and send to the server
         if(Constants.hasGCMToken(this)){
             UserFollows theUser=Constants.getUserFromPreferences(this);
-            //Since that text potentially might not be written yet- the write to sp is async on a different thread
-            theUser.setEmailPassword(enteredText);
-            ConnectionServer.sendToServer(theUser);
+            //Since that text potentially might not be written yet in shared preferences- the write to sp is async on a different thread
+            if(someTextWasEntered) {theUser.setEmailPassword(enteredText);}
+            ConnectionServer connectionServer=new ConnectionServer(this);
+            connectionServer.sendToServer(theUser);
 
         }
             Intent launchChooseStock=new Intent(this,ChooseStockActivity.class);

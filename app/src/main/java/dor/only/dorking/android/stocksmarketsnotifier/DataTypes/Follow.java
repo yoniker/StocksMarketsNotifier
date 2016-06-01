@@ -17,67 +17,61 @@ public class Follow {
     //For now we will support up to 4 numerical parameters for the follow's desciption
     public static final int NUMBER_OF_PARAMETERS=4;
 
-    private Security mTheSecurity;
-    private String mFollowType;
-    private double[] mFollowParams=new double[NUMBER_OF_PARAMETERS];
+    private Security theSecurity;
+    private String followType;
+    private double[] followParams=new double[NUMBER_OF_PARAMETERS];
     //From what point did we start following it?
-    private Timestamp mStart;
+    private Timestamp start;
     //What is the expiry date?
-    private Timestamp mExpiry;
+    private Timestamp expiry;
 
     public static final String FOLLOW_TYPE_BETWEEN="between";
 
-
-
-    public String getFollowType() {
-        return mFollowType;
-    }
-
-    public void setFollowType(String followType) {
-        this.mFollowType = followType;
-    }
-
-    public double[] getFollowParams() {
-        return mFollowParams;
-    }
-
-    public void setFollowParams(double[] mFollowParams) {
-        this.mFollowParams = mFollowParams;
-    }
-
-    public Timestamp getStart() {
-        return mStart;
-    }
-
-    public void setStart(Timestamp mStart) {
-        this.mStart = mStart;
-    }
-
-    public Timestamp getExpiry() {
-        return mExpiry;
-    }
-
-    public void setExpiry(Timestamp mExpiry) {
-        this.mExpiry = mExpiry;
-    }
-
-    public static int getNumberOfParameters() {
-        return NUMBER_OF_PARAMETERS;
-    }
-
-    public static String getFollowTypeBetween() {
-        return FOLLOW_TYPE_BETWEEN;
-    }
-
-
-
     public Security getTheSecurity() {
-        return mTheSecurity;
+        return theSecurity;
     }
 
     public void setTheSecurity(Security theSecurity) {
-        this.mTheSecurity = theSecurity;
+        this.theSecurity = theSecurity;
     }
+
+    public String getFollowType() {
+        return followType;
+    }
+
+    public void setFollowType(String followType) {
+        this.followType = followType;
+    }
+
+    public double[] getFollowParams() {
+        return followParams;
+    }
+
+    public void setFollowParams(double[] followParams) {
+        this.followParams = followParams;
+    }
+
+    public Timestamp getStart() {
+        return start;
+    }
+
+    public void setStart(Timestamp start) {
+        this.start = start;
+    }
+
+    public Timestamp getExpiry() {
+        return expiry;
+    }
+
+    public void setExpiry(Timestamp expiry) {
+        this.expiry = expiry;
+    }
+
+
+
+
+
+
 
 
 

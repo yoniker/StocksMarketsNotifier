@@ -27,6 +27,9 @@ public class Constants {
     //key in sp for user's pic URI
     public static final String SP_PIC_URI="my pic uri";
 
+    //key in sp for user's URI on the server
+    public static final String SP_USER_LINK="user link";
+
     //key in sp for last contact (the last time the client tried to contact the server
     public static final String SP_LAST_CONTACT="last contact";
 
@@ -68,6 +71,28 @@ public class Constants {
         boolean hasGCMToken = sp.contains(SP_GCM_REG_TOKEN);
         return hasId(context) && hasGCMToken;
 
+    }
+
+    //Do we have all the information we need to send a follow?
+    public static boolean followReady(Context context){
+        if(!userReady(context)){return false;}
+        SharedPreferences sp=context.getSharedPreferences(SHARED_PREFS,Context.MODE_PRIVATE);
+        return sp.contains(SP_USER_LINK);
+
+
+    }
+
+    public static String userURI(Context context){
+        SharedPreferences sp=context.getSharedPreferences(SHARED_PREFS,Context.MODE_PRIVATE);
+        if(!sp.contains(SP_USER_LINK)){return null;}
+        return sp.getString(SP_USER_LINK,"");
+
+    }
+
+    //http://stackoverflow.com/questions/309424/read-convert-an-inputstream-to-a-string
+   public static String convertStreamToString(java.io.InputStream is) {
+        java.util.Scanner s = new java.util.Scanner(is).useDelimiter("\\A");
+        return s.hasNext() ? s.next() : "";
     }
 
 
