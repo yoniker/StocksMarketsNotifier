@@ -4,13 +4,14 @@ import android.content.Context;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 import android.provider.BaseColumns;
-import dor.only.dorking.android.stocksmarketsnotifier.Database.FollowContract.FollowEntry;
+
+import dor.only.dorking.android.stocksmarketsnotifier.Database.FollowContract.*;
 
 /**
  * Created by Yoni on 6/1/2016.
  */
 public class FollowsDbHelper extends SQLiteOpenHelper implements BaseColumns {
-    private static final int DATABASE_VERSION = 1;
+    private static final int DATABASE_VERSION = 2;
     static final String DATABASE_NAME = "follows.db";
 
     public FollowsDbHelper(Context context) {
@@ -25,7 +26,7 @@ public class FollowsDbHelper extends SQLiteOpenHelper implements BaseColumns {
 
         final String SQL_CREATE_FOLLOW_TABLE = "CREATE TABLE " +FollowEntry.TABLE_NAME + " (" +
                FollowEntry._ID + " INTEGER PRIMARY KEY," +
-                FollowEntry.COLUMN_SECURITY_TICKER + " TEXT NOT NULL, " +
+                FollowEntry.COLUMN_SECURITY_ID + " INTEGER, " +
                 FollowEntry.COLUMN_FOLLOW_TYPE + " TEXT NOT NULL, " +
                 FollowEntry.COLUMN_PARAM1 + " REAL NOT NULL, " +
                 FollowEntry.COLUMN_PARAM2 + " REAL NOT NULL, " +
@@ -37,7 +38,19 @@ public class FollowsDbHelper extends SQLiteOpenHelper implements BaseColumns {
                 FollowEntry.COLUMN_STATUS + " TEXT " +
                 " );";
 
+        final String SQL_CREATE_SECURITIES_TABLE="CREATE TABLE " + SecurityEntry.TABLE_NAME + " (" +
+                SecurityEntry._ID + " INTEGER PRIMARY KEY," +
+                SecurityEntry.COLUMN_SECURITY_NAME + " TEXT NOT NULL, " +
+                SecurityEntry.COLUMN_COUNTRY + " TEXT NOT NULL, " +
+                SecurityEntry.COLUMN_SECURITY_TYPE + " TEXT NOT NULL, " +
+                SecurityEntry.COLUMN_STOCKMARKETNAME + " TEXT NOT NULL, " +
+                SecurityEntry.COLUMN_TICKER + " TEXT NOT NULL, " +
+                SecurityEntry.COLUMN_URI_INFO_LINK+" TEXT "+
+                " );";
+
         db.execSQL(SQL_CREATE_FOLLOW_TABLE);
+        db.execSQL(SQL_CREATE_SECURITIES_TABLE);
+
 
     }
 
@@ -45,6 +58,7 @@ public class FollowsDbHelper extends SQLiteOpenHelper implements BaseColumns {
     public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
 
         db.execSQL("DROP TABLE IF EXISTS " + FollowEntry.TABLE_NAME);
+        db.execSQL("DROP TABLE IF EXISTS " + SecurityEntry.TABLE_NAME);
         onCreate(db);
 
     }
