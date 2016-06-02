@@ -35,7 +35,8 @@ public class FollowsDbHelper extends SQLiteOpenHelper implements BaseColumns {
                 FollowEntry.COLUMN_PRICE_STARTED + " REAL NOT NULL, " +
                 FollowEntry.COLUMN_DATE_STARTED + " INTEGER,"+
                 FollowEntry.COLUMN_DATE_EXPIRY+" INTEGER,"+
-                FollowEntry.COLUMN_STATUS + " TEXT " +
+                FollowEntry.COLUMN_STATUS + " TEXT, " +
+                FollowEntry.COLUMN_URI_TO_SERVER+" TEXT "+
                 " );";
 
         final String SQL_CREATE_SECURITIES_TABLE="CREATE TABLE " + SecurityEntry.TABLE_NAME + " (" +

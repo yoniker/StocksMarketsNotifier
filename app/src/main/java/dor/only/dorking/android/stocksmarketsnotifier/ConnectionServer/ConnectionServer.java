@@ -13,6 +13,7 @@ import com.google.gson.JsonSerializationContext;
 import com.google.gson.JsonSerializer;
 
 import org.json.JSONArray;
+import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.BufferedWriter;
@@ -30,7 +31,9 @@ import java.util.TimeZone;
 
 import dor.only.dorking.android.stocksmarketsnotifier.Contants.Constants;
 import dor.only.dorking.android.stocksmarketsnotifier.DataTypes.Follow;
+import dor.only.dorking.android.stocksmarketsnotifier.DataTypes.FollowAndStatus;
 import dor.only.dorking.android.stocksmarketsnotifier.DataTypes.UserFollows;
+import dor.only.dorking.android.stocksmarketsnotifier.Database.Followsdb;
 
 /**
  * Created by Yoni on 5/23/2016.
@@ -127,6 +130,10 @@ public class ConnectionServer {
                     if (urlConnection != null) {
                         urlConnection.disconnect();
                     }
+                    try{if(in!=null){in.close();}
+                    if(out!=null){out.close();}} catch(IOException e){}
+
+
 
 
                     return null;
@@ -146,8 +153,9 @@ public class ConnectionServer {
     //Helper class which will implement a task sending a follow to the server
     //Needed because we need context in that class (so we can get the right URI to post for).
 
-    private static class postFollowTask extends AsyncTask<Follow, Void, Void>{
+    private static class postFollowTask extends AsyncTask<FollowAndStatus, Void, FollowAndStatus>{
     private Context mContext;
+        private boolean mFollowAlreadyExists;
 
         //a class which deals specifically with serializing timestamps
 
@@ -166,16 +174,25 @@ public class ConnectionServer {
 
 
         }
-        public postFollowTask(Context mContext){
-        this.mContext=mContext;}
+        public postFollowTask(Context mContext,boolean followAlreadyExists){
+        this.mContext=mContext;
+        this.mFollowAlreadyExists=followAlreadyExists;
+        }
 
         @Override
-        protected Void doInBackground(Follow... params) {
+        protected FollowAndStatus doInBackground(FollowAndStatus... params) {
 
             HttpURLConnection urlConnection=null;
             BufferedWriter out=null;
-            Follow theFollow=params[0];
+            InputStream in=null;
+            FollowAndStatus theFollowandStatus=params[0];
+            Follow theFollow=theFollowandStatus.getFollow();
             String userURI=Constants.userURI(mContext);
+            String receivedURI=theFollowandStatus.getFollowURIToServer();
+            //If follow already exists and we have a URI then PUT the follow to that URI.
+            //If not, then just POST to the 'usual' URI.
+            boolean putFollow=mFollowAlreadyExists && receivedURI!=null && !receivedURI.equals("");
+
             try{
 
                 GsonBuilder gsonBuilder = new GsonBuilder();
@@ -185,37 +202,85 @@ public class ConnectionServer {
                 String json = gson.toJson(theFollow);
                 Uri theUri=Uri.parse(userURI).buildUpon().appendPath(SERVER_FOLLOWS_PATH).build();
                 URL theURL= new URL(theUri.toString());
+                if(putFollow){theURL=new URL(receivedURI);}
                 urlConnection = (HttpURLConnection) theURL.openConnection();
                 urlConnection.setRequestProperty("Content-Type", "application/json");
                 //TODO setFixedLengthStreamingMode(int)
                 //urlConnection.setDoOutput(true);
-                urlConnection.setRequestMethod(POST);
+                if(putFollow) {urlConnection.setRequestMethod(PUT);} else {urlConnection.setRequestMethod(POST);}
                 out = new BufferedWriter(new OutputStreamWriter(urlConnection.getOutputStream()));
                 out.write(json);
                 out.flush();
                 //TODO maybe in the future,if this isn't 200, try to resolve the issue or reschedule...
-                 int status=urlConnection.getResponseCode();
+                // int status=urlConnection.getResponseCode();
+                //TODO maybe in the future,if this isn't 200, try to resolve the issue or reschedule...
+                // int status=urlConnection.getResponseCode();
+                in = urlConnection.getInputStream();
+                String theResponse = Constants.convertStreamToString(in);
+                //Here is an example response from the server:
+                //{"links":[{"rel":"self","url":"http://46.121.92.236/securitiesFollowServer/users/1"}],"theMessage":""}
+                JSONObject serverResponse = new JSONObject(theResponse);
+                JSONArray allLinks = serverResponse.getJSONArray(SERVER_LINKS);
+                FollowAndStatus followSent=new FollowAndStatus();
+                followSent.setFollow(theFollow);
+                followSent.setStatus(FollowAndStatus.STATUS_SENT_SUCCESSFULLY);
+                for (int i = 0; i < allLinks.length(); ++i) {
+                    JSONObject link = (JSONObject) allLinks.get(i);
+                    //Let's check if it is the 'self' link, which should give us the URI for the follow
+                    if (link.has(SERVER_REL) && link.has(SERVER_URL)) {
+                        if (link.getString(SERVER_REL).equals(SERVER_SELF)) {
+                            followSent.setFollowURIToServer(link.getString(SERVER_URL));
+
+                        }
+
+                    }
+                }
+
+                return followSent;
 
 
 
-            }
+
+
+
+
+                }
             catch(MalformedURLException e){
+                String h=e.toString();
 
 
             }
 
-            catch(IOException e){}
+            catch(IOException e){
+                String h=e.toString();
+
+            }
+            catch(JSONException e){
+
+                String h=e.toString();
+
+            }
 
 
             return null;
         }
 
+        @Override
+        protected void onPostExecute(FollowAndStatus followSent) {
+            super.onPostExecute(followSent);
+
+            if(followSent!=null){
+            Followsdb thedb=new Followsdb(mContext);
+
+            thedb.addToFollowsDB(followSent);}
+
+        }
     }
 
 
-    public void sendToServer(Follow theFollow) {
+    public void sendToServer(FollowAndStatus theFollow,boolean followAlreadyExists) {
         if(theFollow==null){return;}
-        postFollowTask theTask=new postFollowTask(mContext);
+        postFollowTask theTask=new postFollowTask(mContext,followAlreadyExists);
         theTask.execute(theFollow);
         return;
 

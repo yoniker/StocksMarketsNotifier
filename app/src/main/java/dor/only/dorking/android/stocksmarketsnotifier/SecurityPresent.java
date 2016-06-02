@@ -14,6 +14,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import java.sql.Timestamp;
+import java.util.ArrayList;
 import java.util.Calendar;
 
 import dor.only.dorking.android.stocksmarketsnotifier.ConnectionServer.ConnectionServer;
@@ -36,6 +37,8 @@ public class SecurityPresent extends AppCompatActivity implements View.OnLongCli
     private boolean mLoadedRTValues=false;
     private RealTimeSecurityData mRealTimeSecurityData=null;
     private Button mSendFollowButton;
+    private boolean mFollowExistedAlready=false;
+    private FollowAndStatus mFollowAndStatus=null;
 
     private EditText mHigherValueAbsolute,mHigherValuePercents,mLowerValueAbsolute,mLowerValuePercents;
 
@@ -69,7 +72,7 @@ public class SecurityPresent extends AppCompatActivity implements View.OnLongCli
         mStockWebsite=(WebView) findViewById(R.id.web_stock_website_stock_website);
         mStockName=(TextView)findViewById(R.id.text_stock_name);
         mStockName.setText(mTheSecurity.getName());
-        AsyncTask<Security,Void,RealTimeSecurityData> theTask=new AsyncTask<Security, Void, RealTimeSecurityData>() {
+        AsyncTask<Security,Void,RealTimeSecurityData> getDataFromYahooTask=new AsyncTask<Security, Void, RealTimeSecurityData>() {
             @Override
             protected RealTimeSecurityData doInBackground(Security... params) {
                 Security theSecurity=params[0];
@@ -88,6 +91,8 @@ public class SecurityPresent extends AppCompatActivity implements View.OnLongCli
                     mLoadedRTValues = true;
                 }
 
+                loadFollows();
+
 
             }
         };
@@ -95,7 +100,7 @@ public class SecurityPresent extends AppCompatActivity implements View.OnLongCli
         //We need Asynctasks to run in parallel,otherwise it will take forever eg first get info from yahoo and only then get webpage from Nasdq or vice versa
         // See https://developer.android.com/reference/android/os/AsyncTask.html
 
-        theTask.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, mTheSecurity);
+        getDataFromYahooTask.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, mTheSecurity);
 
 
 
@@ -110,10 +115,31 @@ public class SecurityPresent extends AppCompatActivity implements View.OnLongCli
 
 
 
+    }
+
+
+    //TODO: support more than one follow, for now I will implement just one follow per security
+    private void loadFollows(){
+        Followsdb db=new Followsdb(this);
+        //TODO take this disk access off the UI thread
+        ArrayList<FollowAndStatus> theList= new ArrayList<>(db.getAllFollows(mTheSecurity));
+        if(theList.size()>0){
+            FollowAndStatus theFollow=theList.get(0);
+            double lowerValue=theFollow.getFollow().getFollowParams()[0];
+            double higherValue=theFollow.getFollow().getFollowParams()[1];
+            mHigherValueAbsolute.setText(String.valueOf(higherValue));
+            mLowerValueAbsolute.setText(String.valueOf(lowerValue));
+            setValuesAccordingToAbsolutePrice();
+            mSendFollowButton.setText("Update Follow");
+            mFollowExistedAlready=true;
+            mFollowAndStatus=theFollow;
+
+        }
+
+
 
 
     }
-
 
     @Override
     public boolean onLongClick(View v) {
@@ -146,8 +172,8 @@ public class SecurityPresent extends AppCompatActivity implements View.OnLongCli
         double currentPrice=mRealTimeSecurityData.getPrice();
         String higherPercents;
         if(!(higherPercents=mHigherValuePercents.getText().toString()).equals("")){
-            double percents=Double.valueOf(mHigherValuePercents.getText().toString());
-            percents=Math.abs(percents);
+            abs(mHigherValuePercents);
+            double percents=Double.valueOf(higherPercents);
             double newHigherAbsolute=currentPrice*(1+percents/100);
             mHigherValueAbsolute.setText(String.valueOf(newHigherAbsolute));
 
@@ -155,8 +181,8 @@ public class SecurityPresent extends AppCompatActivity implements View.OnLongCli
 
         String lowerPercents;
         if(!(lowerPercents=mLowerValuePercents.getText().toString()).equals("")){
-            double percents=Double.valueOf(mLowerValuePercents.getText().toString());
-            percents=Math.abs(percents);
+            abs(mLowerValueAbsolute);
+            double percents=Double.valueOf(lowerPercents);
             if(percents>100){percents=100; mLowerValuePercents.setText("100");}
             double newLowerAbsolute=currentPrice*(1-percents/100);
             mLowerValueAbsolute.setText(String.valueOf(newLowerAbsolute));
@@ -164,6 +190,37 @@ public class SecurityPresent extends AppCompatActivity implements View.OnLongCli
         }
 
     }
+
+    private void setValuesAccordingToAbsolutePrice() {
+        double currentPrice = mRealTimeSecurityData.getPrice();
+        String higherLimit = mHigherValueAbsolute.getText().toString();
+        if (!higherLimit.equals("")) {
+            double numberEntered = Double.valueOf(higherLimit);
+            if (numberEntered > currentPrice) {
+                //Alright if we are here it means that the value itself is fine,so let's just change the value in the percents field
+                double newHigherPercents = ((numberEntered / currentPrice) - 1) * 100;
+                mHigherValuePercents.setText(String.valueOf(newHigherPercents));
+            }
+        }
+
+        String lowerLimit = mLowerValueAbsolute.getText().toString();
+        if (!lowerLimit.equals("")) {
+            double numberEntered = Double.valueOf(lowerLimit);
+
+            if (numberEntered < currentPrice || numberEntered >= 0) {
+
+                //Alright if we are here it means that the value itself is fine,so let's just change the value in the percents field
+                double newLowerPercents = Math.abs((1 - numberEntered / currentPrice) * 100);
+                mLowerValuePercents.setText(String.valueOf(newLowerPercents));
+            }
+
+
+        }
+
+    }
+
+
+
 
     /*
 
@@ -213,15 +270,9 @@ public class SecurityPresent extends AppCompatActivity implements View.OnLongCli
                 return;
             }
 
-            //Alright if we are here it means that the value itself is fine,so let's just change the value in the percents field
-            double newHigherPercents=((numberEntered/currentPrice)-1)*100;
-            mHigherValuePercents.setText(String.valueOf(newHigherPercents));
+            setValuesAccordingToAbsolutePrice();
        }
-        if(v==mHigherValuePercents){
-            //Well,in here there can't be a bad value,so just update the field in the other "higher" edittext
-            setValuesAccordingToPercents();
 
-        }
         if(v==mLowerValueAbsolute){
             //First of all let's check if this is legal value
             double numberEntered=Double.valueOf(mLowerValueAbsolute.getText().toString());
@@ -230,18 +281,16 @@ public class SecurityPresent extends AppCompatActivity implements View.OnLongCli
                 setValuesAccordingToPercents();
                 return;
             }
-
-            //Alright if we are here it means that the value itself is fine,so let's just change the value in the percents field
-            double newLowerPercents=Math.abs((1-numberEntered/currentPrice)*100);
-            mLowerValuePercents.setText(String.valueOf(newLowerPercents));
+            setValuesAccordingToAbsolutePrice();
 
 
         }
+
+        if(v==mHigherValuePercents){
+            setValuesAccordingToPercents();
+        }
         if(v==mLowerValuePercents){
-            //Well,in here there can't be a bad value,so just update the field in the other "higher" edittext
            setValuesAccordingToPercents();
-
-
         }
     }
 
@@ -283,7 +332,13 @@ public class SecurityPresent extends AppCompatActivity implements View.OnLongCli
             theFollow.setExpiry(rightNow);
 
             ConnectionServer connectionServer=new ConnectionServer(this);
-            connectionServer.sendToServer(theFollow);
+            FollowAndStatus followToSend= new FollowAndStatus();
+            followToSend.setFollow(theFollow);
+            if(mFollowExistedAlready && mFollowAndStatus!=null){
+                followToSend.setFollowURIToServer(mFollowAndStatus.getFollowURIToServer());
+
+            }
+            connectionServer.sendToServer(followToSend,mFollowExistedAlready);
             FollowAndStatus followAndStatus=new FollowAndStatus();
             followAndStatus.setFollow(theFollow);
             //TODO change the status when we know it is successful (launch a service?)

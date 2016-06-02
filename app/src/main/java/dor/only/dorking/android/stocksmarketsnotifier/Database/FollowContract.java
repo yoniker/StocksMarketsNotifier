@@ -35,6 +35,7 @@ public class FollowContract {
         public static final String COLUMN_PARAM4="param4";
         //What is the status of the follow?
         public static final String COLUMN_STATUS="status";
+        public static final String COLUMN_URI_TO_SERVER="follow_uri_to_server";
 
 
 

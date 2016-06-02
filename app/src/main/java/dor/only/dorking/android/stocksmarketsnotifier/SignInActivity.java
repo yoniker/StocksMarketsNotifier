@@ -74,9 +74,9 @@ public class SignInActivity extends AppCompatActivity implements View.OnClickLis
         if(Constants.hasGCMToken(this)){
             UserFollows theUser=Constants.getUserFromPreferences(this);
             //Since that text potentially might not be written yet in shared preferences- the write to sp is async on a different thread
-            if(someTextWasEntered) {theUser.setEmailPassword(enteredText);}
+            if(someTextWasEntered &&!Constants.followReady(this)) {theUser.setEmailPassword(enteredText);
             ConnectionServer connectionServer=new ConnectionServer(this);
-            connectionServer.sendToServer(theUser);
+            connectionServer.sendToServer(theUser);}
 
         }
             Intent launchChooseStock=new Intent(this,ChooseStockActivity.class);

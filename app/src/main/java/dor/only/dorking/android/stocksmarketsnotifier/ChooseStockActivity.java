@@ -18,7 +18,7 @@ import dor.only.dorking.android.stocksmarketsnotifier.Database.DatabaseAccess;
 
 public class ChooseStockActivity extends AppCompatActivity {
     private EditText mEditText;
-    private ListView listView;
+    private ListView mListView;
     List<Security> mStocksInformation;
 
 
@@ -28,7 +28,7 @@ public class ChooseStockActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        listView = (ListView) findViewById(R.id.listView);
+        mListView = (ListView) findViewById(R.id.listView);
         mEditText=(EditText)findViewById(R.id.search_for_stocks);
         mEditText.addTextChangedListener(new TextWatcher() {
             @Override
@@ -50,8 +50,8 @@ public class ChooseStockActivity extends AppCompatActivity {
 
         //ArrayAdapter<String> adapter = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, mStocksInformation);
         SecurityListAdapter adapter = new SecurityListAdapter(this,mStocksInformation);
-        listView.setAdapter(adapter);
-        listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+        mListView.setAdapter(adapter);
+        mListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
                 Intent showSecurity=new Intent(getApplicationContext(),SecurityPresent.class);
@@ -85,7 +85,7 @@ public class ChooseStockActivity extends AppCompatActivity {
         mStocksInformation=databaseAccess.getStocksInfo(searchText);
         databaseAccess.close();
         SecurityListAdapter adapter = new SecurityListAdapter(this,mStocksInformation);
-        listView.setAdapter(adapter);
+        mListView.setAdapter(adapter);
 
     }
 

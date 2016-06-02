@@ -6,6 +6,10 @@ package dor.only.dorking.android.stocksmarketsnotifier.DataTypes;
 public class FollowAndStatus {
     private Follow follow;
     private String Status;
+
+
+
+    private String followURIToServer;
     private double priceStarted;
 
 
@@ -18,6 +22,15 @@ public class FollowAndStatus {
     public final static String STATUS_CONNECTION_FAILED="connection failed";
     //If it was already notified then just save it as part of the "history".
     public final static String STATUS_HISTORY="history";
+
+
+    public String getFollowURIToServer() {
+        return followURIToServer;
+    }
+
+    public void setFollowURIToServer(String followURIToServer) {
+        this.followURIToServer = followURIToServer;
+    }
 
     public double getPriceStarted() {
         return priceStarted;

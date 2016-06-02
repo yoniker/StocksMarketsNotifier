@@ -21,6 +21,10 @@ public class Followsdb {
     private FollowsDbHelper mDBHelper;
     private Context mContext;
 
+    private static final long SECURITY_NOT_FOUND=-1;
+    private static final long FOLLOW_NOT_FOUND=-1;
+
+
 
     public Followsdb(Context context){
         mContext=context;
@@ -65,26 +69,41 @@ public class Followsdb {
 
 
 
+    private long findSecurityId(Security theSecurity){
 
-    /* adds a security to the database and gives its id,or just gives its id if it already exists*/
-    public long addToSecuritiesDB(Security theSecurity){
 
         Cursor theCursor=null;
+        try{
+        theCursor = mDBHelper.getReadableDatabase().query(SecurityEntry.TABLE_NAME,
+                new String[]{SecurityEntry._ID},
+                SecurityEntry.COLUMN_TICKER+"=?"+
+                        " and "+SecurityEntry.COLUMN_STOCKMARKETNAME+"=?"+
+                        " and "+SecurityEntry.COLUMN_COUNTRY+"=?",
+                new String []{theSecurity.getTicker(),
+                        theSecurity.getStocksMarketName(),
+                        theSecurity.getCountry()},null,null,null);
+        //If it exists already then just return the id
+        if(theCursor.moveToFirst()){
+            return theCursor.getLong(0); //there is just one column in the results set- the _ID column...
+        }
+
+            return SECURITY_NOT_FOUND;
+
+    } finally {
+            if(theCursor!=null){theCursor.close();}
+        }
+        }
+
+
+    /* adds a security to the database and gives its id,or just gives its id if it already exists*/
+    private long addToSecuritiesDB(Security theSecurity){
+
+        long foundSecurityID=findSecurityId(theSecurity);
+        if(foundSecurityID!=SECURITY_NOT_FOUND) {return foundSecurityID;}
         SQLiteDatabase db=null;
         try{
 
-            theCursor = mDBHelper.getReadableDatabase().query(SecurityEntry.TABLE_NAME,null,
-                    SecurityEntry.COLUMN_TICKER+"=?"+
-                    " and "+SecurityEntry.COLUMN_STOCKMARKETNAME+"=?"+
-                    " and "+SecurityEntry.COLUMN_COUNTRY+"=?",
-                    new String []{theSecurity.getTicker(),
-                    theSecurity.getStocksMarketName(),
-                    theSecurity.getCountry()},null,null,null);
-            //If it exists already then just return the id
-            if(theCursor.moveToFirst()){
-                return theCursor.getLong(theCursor.getColumnIndex(SecurityEntry._ID));
 
-            }
 
             db=mDBHelper.getWritableDatabase();
             ContentValues values=new ContentValues();
@@ -95,18 +114,9 @@ public class Followsdb {
             values.put(SecurityEntry.COLUMN_STOCKMARKETNAME,theSecurity.getStocksMarketName());
             values.put(SecurityEntry.COLUMN_URI_INFO_LINK,theSecurity.getMoreInfoUri());
             return db.insert(SecurityEntry.TABLE_NAME,null,values);
-
-
-
-
-
-
-
-
         }
 
         finally {
-            if(theCursor!=null){theCursor.close();}
             if(db!=null){db.close();}
         }
 
@@ -114,31 +124,77 @@ public class Followsdb {
 
 
     }
+
+    private long getFollowID(FollowAndStatus theFollow){
+        if(theFollow==null) {return FOLLOW_NOT_FOUND;}
+        Cursor cursor=null;
+
+        long securityID= findSecurityId(theFollow.getFollow().getTheSecurity());
+
+        try{
+            cursor=mDBHelper.getReadableDatabase().query(FollowEntry.TABLE_NAME,
+                    new String[]{FollowEntry._ID},
+                    FollowEntry.COLUMN_SECURITY_ID+"=?",
+                    new String[]{String.valueOf(securityID)},
+                    null,
+                    null,
+                    null
+
+                    );
+
+            if(cursor.moveToFirst()){
+                return cursor.getLong(0);
+
+            }
+            return FOLLOW_NOT_FOUND;
+
+        }
+        finally {
+            if(cursor!=null) {
+            cursor.close();
+            }
+        }
+
+    }
+
 
 
 
     public void addToFollowsDB(FollowAndStatus theFollow){
         SQLiteDatabase db=null;
-        try{
-            ContentValues values=new ContentValues();
-            values.put(FollowEntry.COLUMN_STATUS,theFollow.getStatus());
-            values.put(FollowEntry.COLUMN_PRICE_STARTED,theFollow.getPriceStarted());
-            Follow f=theFollow.getFollow();
-            long securityId=addToSecuritiesDB(f.getTheSecurity());
-            values.put(FollowEntry.COLUMN_SECURITY_ID,securityId);
-            values.put(FollowEntry.COLUMN_DATE_STARTED,f.getStart().getTime());
-            values.put(FollowEntry.COLUMN_DATE_EXPIRY,f.getExpiry().getTime());
-            values.put(FollowEntry.COLUMN_FOLLOW_TYPE,f.getFollowType());
-            values.put(FollowEntry.COLUMN_PARAM1,f.getFollowParams()[0]);
-            values.put(FollowEntry.COLUMN_PARAM2,f.getFollowParams()[1]);
-            values.put(FollowEntry.COLUMN_PARAM3,0);
-            values.put(FollowEntry.COLUMN_PARAM4,0);
-            db=mDBHelper.getWritableDatabase();
-            long id= db.insert(FollowEntry.TABLE_NAME,null,values);
-             if( id>0){}
+        try {
+            ContentValues values = new ContentValues();
+            Follow f = theFollow.getFollow();
+            values.put(FollowEntry.COLUMN_PARAM1, f.getFollowParams()[0]);
+            values.put(FollowEntry.COLUMN_PARAM2, f.getFollowParams()[1]);
+            values.put(FollowEntry.COLUMN_PARAM3, 0);
+            values.put(FollowEntry.COLUMN_PARAM4, 0);
+            long securityId = addToSecuritiesDB(f.getTheSecurity());
+            values.put(FollowEntry.COLUMN_SECURITY_ID, securityId);
+            values.put(FollowEntry.COLUMN_DATE_STARTED, f.getStart().getTime());
+            values.put(FollowEntry.COLUMN_DATE_EXPIRY, f.getExpiry().getTime());
+            values.put(FollowEntry.COLUMN_FOLLOW_TYPE, f.getFollowType());
+            values.put(FollowEntry.COLUMN_URI_TO_SERVER, theFollow.getFollowURIToServer());
+            values.put(FollowEntry.COLUMN_STATUS, theFollow.getStatus());
+
+            //Do we need to update or to insert? if follow exists then just update,if not then insert
+            long currentFollowID = getFollowID(theFollow);
+            db = mDBHelper.getWritableDatabase();
 
 
+            if(currentFollowID==FOLLOW_NOT_FOUND){
+                // If we insert eg it is new,then we can put the new price too.
+                //TODO do it in a more logical way when changing it to a content provider :P
+            values.put(FollowEntry.COLUMN_PRICE_STARTED, theFollow.getPriceStarted());
+                db.insert(FollowEntry.TABLE_NAME, null, values);}
+            else{
+                db.update(FollowEntry.TABLE_NAME,values,
+                        FollowEntry.COLUMN_SECURITY_ID+"=?",
+                        new String []{String.valueOf(securityId)}
+                        );
 
+
+            }
         }
         finally {
             if(db!=null){db.close();}
@@ -147,11 +203,33 @@ public class Followsdb {
 
     }
 
-    public List<FollowAndStatus> getAllFollows(){
+
+    /*Find all follows of the security, or gives back every follow if null is passed as a security instead */
+    public List<FollowAndStatus> getAllFollows(Security securityToFind){
         ArrayList<FollowAndStatus> theList=new ArrayList<FollowAndStatus>();
         Cursor theCursor=null;
+        String selection=null;
+        String[] selectionArgs=null;
+        if(securityToFind!=null)
+        {
+            //To find all follows which point at a certain security,we just need to find all follows with the security's key,if it exists.
+
+            long securityIDFound= findSecurityId(securityToFind);
+            if(securityIDFound==SECURITY_NOT_FOUND) {
+                //If there is no security like that in the securities database,there is no follow for sure,so just return the current empty list.
+                return theList;
+            }
+
+                selection=FollowEntry.COLUMN_SECURITY_ID+"=?";
+                selectionArgs=new String[]{String.valueOf(securityIDFound)};
+
+
+
+        }
         try {
-            theCursor = mDBHelper.getReadableDatabase().query(FollowEntry.TABLE_NAME, null/* Just get all columns-we are actually going to user every single column*/, null, null, null, null, null);
+            theCursor = mDBHelper.getReadableDatabase().query(FollowEntry.TABLE_NAME, null/* Just get all columns-we are actually going to user every single column*/,
+                    selection,
+                    selectionArgs, null, null, null);
             if (theCursor.moveToFirst()) {
                 do {
 
@@ -172,6 +250,7 @@ public class Followsdb {
                     toPutInList.setFollow(theFollow);
                     toPutInList.setStatus(status);
                     toPutInList.setPriceStarted(theCursor.getDouble(theCursor.getColumnIndex(FollowEntry.COLUMN_PRICE_STARTED)));
+                    toPutInList.setFollowURIToServer(theCursor.getString(theCursor.getColumnIndex(FollowEntry.COLUMN_URI_TO_SERVER)));
                     theList.add(toPutInList);
 
                 } while (theCursor.moveToNext());
