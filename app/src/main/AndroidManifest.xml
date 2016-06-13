@@ -68,6 +68,10 @@
         <activity android:name=".SecurityPresent" />
         <activity android:name=".ChooseStockActivity" />
         <activity android:name=".FollowsListPresent"></activity>
+        <provider
+            android:authorities="dor.only.dorking.android.stocksmarketsnotifier"
+            android:name=".Database.FollowProvider"
+            android:exported="false"/>
     </application>
 
 </manifest>

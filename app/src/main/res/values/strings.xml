@@ -12,4 +12,5 @@
     <string name="lower_value_absolute">Lower value($)</string>
     <string name="higher_value_input_error_message">Higher value can\'t be lower than current price!</string>
     <string name="lower_input_error_message">Lower Value can\'t be higher than current price!</string>
+    <string name="content_authority" translatable="false">dor.only.dorking.android.stocksmarketsnotifier</string>
 </resources>

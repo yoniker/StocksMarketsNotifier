@@ -1,6 +1,10 @@
 package dor.only.dorking.android.stocksmarketsnotifier;
 
+import android.content.ContentUris;
+import android.content.ContentValues;
 import android.content.Intent;
+import android.database.Cursor;
+import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
@@ -14,7 +18,6 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import java.sql.Timestamp;
-import java.util.ArrayList;
 import java.util.Calendar;
 
 import dor.only.dorking.android.stocksmarketsnotifier.ConnectionServer.ConnectionServer;
@@ -23,7 +26,8 @@ import dor.only.dorking.android.stocksmarketsnotifier.DataTypes.Follow;
 import dor.only.dorking.android.stocksmarketsnotifier.DataTypes.FollowAndStatus;
 import dor.only.dorking.android.stocksmarketsnotifier.DataTypes.RealTimeSecurityData;
 import dor.only.dorking.android.stocksmarketsnotifier.DataTypes.Security;
-import dor.only.dorking.android.stocksmarketsnotifier.Database.Followsdb;
+import dor.only.dorking.android.stocksmarketsnotifier.Database.FollowContract;
+import dor.only.dorking.android.stocksmarketsnotifier.Database.FollowProvider;
 import dor.only.dorking.android.stocksmarketsnotifier.SecurityDataGetter.SecurityDataGetter;
 
 public class SecurityPresent extends AppCompatActivity implements View.OnLongClickListener,View.OnFocusChangeListener,View.OnClickListener {
@@ -120,19 +124,26 @@ public class SecurityPresent extends AppCompatActivity implements View.OnLongCli
 
     //TODO: support more than one follow, for now I will implement just one follow per security
     private void loadFollows(){
-        Followsdb db=new Followsdb(this);
-        //TODO take this disk access off the UI thread
-        ArrayList<FollowAndStatus> theList= new ArrayList<>(db.getAllFollows(mTheSecurity));
-        if(theList.size()>0){
-            FollowAndStatus theFollow=theList.get(0);
-            double lowerValue=theFollow.getFollow().getFollowParams()[0];
-            double higherValue=theFollow.getFollow().getFollowParams()[1];
-            mHigherValueAbsolute.setText(String.valueOf(higherValue));
-            mLowerValueAbsolute.setText(String.valueOf(lowerValue));
-            setValuesAccordingToAbsolutePrice();
-            mSendFollowButton.setText("Update Follow");
-            mFollowExistedAlready=true;
-            mFollowAndStatus=theFollow;
+        FollowProvider db=new FollowProvider();
+        //TODO take this disk access off the UI thread (Cursor Loader)
+        Cursor result=null;
+        try {
+            result = getContentResolver().query(FollowContract.buildFollowWithSecurity(mTheSecurity), null, null, null, null);
+
+
+            if (result.moveToFirst()) {
+                double lowerValue = result.getDouble(result.getColumnIndex(FollowContract.FollowEntry.COLUMN_PARAM1));
+                double higherValue = result.getDouble(result.getColumnIndex(FollowContract.FollowEntry.COLUMN_PARAM2));
+                mHigherValueAbsolute.setText(String.valueOf(higherValue));
+                mLowerValueAbsolute.setText(String.valueOf(lowerValue));
+                setValuesAccordingToAbsolutePrice();
+                mSendFollowButton.setText("Update Follow");
+                mFollowExistedAlready = true;
+                // mFollowAndStatus=FollowProvider.cursorToFollowAndStatus(result);
+
+            }
+        }finally {
+            if(result!=null){result.close();}
 
         }
 
@@ -294,6 +305,73 @@ public class SecurityPresent extends AppCompatActivity implements View.OnLongCli
         }
     }
 
+
+    void addToFollowsDB(FollowAndStatus followAndStatus){
+
+
+        //TODO take it off the main thread (AsyncTask).
+        Security theSecurity=followAndStatus.getFollow().getTheSecurity();
+        Cursor securitySearchResult=null;
+        long securityId;
+        try{
+        //First let's check if the security exists on the database. If it doesn't then add it, if it does let's get its id.
+         securitySearchResult=getContentResolver().query(FollowContract.SecurityEntry.CONTENT_URI,
+                new String[]{FollowContract.SecurityEntry._ID},
+                FollowContract.sSecurityDetails,
+                new String[]{theSecurity.getTicker(),theSecurity.getStocksMarketName()},
+                null);
+
+
+
+        if(securitySearchResult.moveToFirst()){securityId=securitySearchResult.getLong(securitySearchResult.getColumnIndex(FollowContract.SecurityEntry._ID));
+        } else {
+            Uri addedSecurityUri=getContentResolver().insert(FollowContract.SecurityEntry.CONTENT_URI,FollowProvider.securityContentValues(theSecurity));
+            securityId= ContentUris.parseId(addedSecurityUri);
+
+        } }finally {
+            if(securitySearchResult!=null){securitySearchResult.close();}
+
+        }
+
+
+        ContentValues followAndStatusValues=FollowProvider.followAndStatusContentValues(followAndStatus);
+        followAndStatusValues.put(FollowContract.FollowEntry.COLUMN_SECURITY_ID,securityId);
+
+        Cursor foundFollow=null;
+        try {
+            //For now we will support only one follow per security, so if a follow already exists for this particular security,we will just change it
+             foundFollow = getContentResolver().query(FollowContract.FollowEntry.CONTENT_URI,
+                    new String[]{FollowContract.FollowEntry._ID},
+                    FollowContract.FollowEntry.COLUMN_SECURITY_ID + "=?",
+                    new String[]{String.valueOf(securityId)},
+                    null);
+
+            if (foundFollow.moveToFirst()) {
+                long followId = foundFollow.getLong(0);
+                getContentResolver().update(FollowContract.FollowEntry.CONTENT_URI,
+                        followAndStatusValues,
+                        FollowContract.FollowEntry._ID + "=?",
+                        new String[]{String.valueOf(followId)});
+
+            } else {
+
+                getContentResolver().insert(FollowContract.FollowEntry.CONTENT_URI, followAndStatusValues);
+            }
+
+            return;
+        }
+        finally {
+            if(foundFollow!=null){foundFollow.close();}
+        }
+
+
+
+
+
+
+
+    }
+
     @Override
     public void onClick(View v) {
         if(v==mSendFollowButton){
@@ -344,9 +422,10 @@ public class SecurityPresent extends AppCompatActivity implements View.OnLongCli
             //TODO change the status when we know it is successful (launch a service?)
             followAndStatus.setStatus(FollowAndStatus.STATUS_SENT);
             followAndStatus.setPriceStarted(mRealTimeSecurityData.getPrice());
-            Followsdb thedb=new Followsdb(this);
             //TODO error messages etc when it comes to the database
-            thedb.addToFollowsDB(followAndStatus);
+            //TODO take this off the main thread (AsyncTask).
+
+            addToFollowsDB(followAndStatus);
             Intent launchFollowsList=new Intent(this,FollowsListPresent.class);
             startActivity(launchFollowsList);
 

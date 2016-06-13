@@ -29,24 +29,28 @@ import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.TimeZone;
 
+import javax.net.ssl.HttpsURLConnection;
+
 import dor.only.dorking.android.stocksmarketsnotifier.Contants.Constants;
 import dor.only.dorking.android.stocksmarketsnotifier.DataTypes.Follow;
 import dor.only.dorking.android.stocksmarketsnotifier.DataTypes.FollowAndStatus;
 import dor.only.dorking.android.stocksmarketsnotifier.DataTypes.UserFollows;
-import dor.only.dorking.android.stocksmarketsnotifier.Database.Followsdb;
+import dor.only.dorking.android.stocksmarketsnotifier.Database.FollowProvider;
 
 /**
  * Created by Yoni on 5/23/2016.
  * This class represents the connection to the server, and is in charge of sending requests off the main thread to the server
  */
 public class ConnectionServer {
-    private static final String SERVER_NAME = "46.121.92.236:80";
+    private static final String SERVER_NAME = "46.121.92.82:8080";
     private static final String USERS = "users";
     private static final String POST = "POST";
     private static final String GET = "GET";
     private static final String PUT = "PUT";
     private static final String LOG_TAG = "CONNECTIONSERVER";
-    private final static String SERVER_BASE_URL = "http://" + SERVER_NAME + "/securitiesFollowServer";
+    private final static String LOCAL_SERVER_BASE_URL = "http://" + SERVER_NAME + "/simpleapp";
+    //When sending users for example to Heroku the address should be https://limitless-forest-61362.herokuapp.com/users
+    private final static String HEROKU_SERVER_BASE_URL= "https://limitless-forest-61362.herokuapp.com";
 
     //Some constants which should exist both here and the server (that compatibility is what makes our app and the server 'synchronized' with each other
     //This is how the server calls the array of links it is giving us
@@ -56,6 +60,12 @@ public class ConnectionServer {
     private static final String SERVER_URL = "url";
     //The path which we need to append to the user's URI to get to the follows on the server
     private static final String SERVER_FOLLOWS_PATH="follows";
+
+    //Some constants for debugging purposes
+    private static final int CONNECTION_MODE_LOCAL=0;
+    private static final int CONNECTION_MODE_HEROKU=1;
+
+    private static final int CONNECTION_MODE_CHOSEN=CONNECTION_MODE_HEROKU;
 
     private Context mContext;
 
@@ -80,9 +90,14 @@ public class ConnectionServer {
                 UserFollows theUser = params[0];
                 Gson gson = new Gson();
                 String json = gson.toJson(theUser);
-                Uri builtUri = Uri.parse(SERVER_BASE_URL).buildUpon()
-                        .appendPath(USERS).build();
+                Uri builtUri;
+                if(CONNECTION_MODE_CHOSEN==CONNECTION_MODE_LOCAL) {
+                    builtUri= Uri.parse(LOCAL_SERVER_BASE_URL).buildUpon().appendPath(USERS).build();
+                }
+                else{
+                    builtUri= Uri.parse(HEROKU_SERVER_BASE_URL).buildUpon().appendPath(USERS).build(); }
 
+                HttpsURLConnection urlSConnection=null;
                 HttpURLConnection urlConnection = null;
                 BufferedWriter out = null;
                 InputStream in = null;
@@ -92,17 +107,30 @@ public class ConnectionServer {
                     URL url = new URL(builtUri.toString());
 
                     //  open the connection
+
+                    if(CONNECTION_MODE_CHOSEN==CONNECTION_MODE_LOCAL){
+
                     urlConnection = (HttpURLConnection) url.openConnection();
                     urlConnection.setRequestProperty("Content-Type", "application/json");
                     //TODO setFixedLengthStreamingMode(int)
-                    //urlConnection.setDoOutput(true);
+                //    urlConnection.setDoOutput(true);
                     urlConnection.setRequestMethod(POST);
-                    out = new BufferedWriter(new OutputStreamWriter(urlConnection.getOutputStream()));
+                    out = new BufferedWriter(new OutputStreamWriter(urlConnection.getOutputStream()));}
+                    else if(CONNECTION_MODE_CHOSEN==CONNECTION_MODE_HEROKU){
+                        urlSConnection = (HttpsURLConnection) url.openConnection();
+                        urlSConnection.setRequestProperty("Content-Type", "application/json");
+                        //TODO setFixedLengthStreamingMode(int)
+                        //    urlConnection.setDoOutput(true);
+                        urlSConnection.setRequestMethod(POST);
+                        out = new BufferedWriter(new OutputStreamWriter(urlSConnection.getOutputStream()));
+
+                    }
                     out.write(json);
                     out.flush();
                     //TODO maybe in the future,if this isn't 200, try to resolve the issue or reschedule...
                     // int status=urlConnection.getResponseCode();
-                    in = urlConnection.getInputStream();
+                   if(CONNECTION_MODE_CHOSEN==CONNECTION_MODE_LOCAL){
+                    in = urlConnection.getInputStream();} else {in=urlSConnection.getInputStream();}
                     String theResponse = Constants.convertStreamToString(in);
                     //Here is an example response from the server:
                     //{"links":[{"rel":"self","url":"http://46.121.92.236/securitiesFollowServer/users/1"}],"theMessage":""}
@@ -126,6 +154,8 @@ public class ConnectionServer {
                     //urlConnection.connect();
                 } catch (IOException e) {
                     Log.e(LOG_TAG, "Error ", e);
+                    String theerror=e.toString();
+                    theerror+=" ";
                 } finally {
                     if (urlConnection != null) {
                         urlConnection.disconnect();
@@ -270,7 +300,7 @@ public class ConnectionServer {
             super.onPostExecute(followSent);
 
             if(followSent!=null){
-            Followsdb thedb=new Followsdb(mContext);
+            FollowProvider thedb=new FollowProvider();
 
             thedb.addToFollowsDB(followSent);}
 
