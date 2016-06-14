@@ -1,8 +1,11 @@
 package dor.only.dorking.android.stocksmarketsnotifier.ConnectionServer;
 
+import android.content.ContentValues;
 import android.content.Context;
+import android.database.Cursor;
 import android.net.Uri;
 import android.os.AsyncTask;
+import android.support.annotation.WorkerThread;
 import android.util.Log;
 
 import com.google.gson.Gson;
@@ -35,6 +38,7 @@ import dor.only.dorking.android.stocksmarketsnotifier.Contants.Constants;
 import dor.only.dorking.android.stocksmarketsnotifier.DataTypes.Follow;
 import dor.only.dorking.android.stocksmarketsnotifier.DataTypes.FollowAndStatus;
 import dor.only.dorking.android.stocksmarketsnotifier.DataTypes.UserFollows;
+import dor.only.dorking.android.stocksmarketsnotifier.Database.FollowContract;
 import dor.only.dorking.android.stocksmarketsnotifier.Database.FollowProvider;
 
 /**
@@ -65,7 +69,7 @@ public class ConnectionServer {
     private static final int CONNECTION_MODE_LOCAL=0;
     private static final int CONNECTION_MODE_HEROKU=1;
 
-    private static final int CONNECTION_MODE_CHOSEN=CONNECTION_MODE_HEROKU;
+    private static final int CONNECTION_MODE_CHOSEN=CONNECTION_MODE_LOCAL;
 
     private Context mContext;
 
@@ -179,11 +183,65 @@ public class ConnectionServer {
         task.execute(theUser);
     }
 
+    @WorkerThread
+    void writeFollowToDatabase(FollowAndStatus theFollowAndStatus){
+
+        //First lets check if the follow is already in the Database..
+        //For now we are assuming that each security has at most one follow so we can find it based on that
+        //Let's find the security ID first (based on its ticker and stock market).
+
+        String ticker=theFollowAndStatus.getFollow().getTheSecurity().getTicker();
+        String stocksMarketName=theFollowAndStatus.getFollow().getTheSecurity().getStocksMarketName();
+
+        Cursor securitySearchResult=mContext.getContentResolver().query(FollowContract.SecurityEntry.CONTENT_URI,
+                new String[]{FollowContract.SecurityEntry._ID},
+                FollowContract.sSecurityDetails,
+                new String[]{ticker,stocksMarketName}, null);
+        if(!securitySearchResult.moveToFirst()){
+            //If there is no follow like that,we can either 1. Decide that the server knows more than the user's device DB about his own follows
+            //or 2.as I've decided, think that the user's own database is more up-to-date (maybe the user deleted the follow before this call?) and do nothing.
+            Log.e(LOG_TAG,"Error: Follow should already be in local database when sending it to server.");
+            return;
+        }
+        long securityId=securitySearchResult.getLong(0);
+
+
+
+
+
+        Cursor followSearchResult=mContext.getContentResolver().query(FollowContract.FollowEntry.CONTENT_URI,
+                new String[] {FollowContract.FollowEntry._ID},
+                FollowContract.FollowEntry.COLUMN_SECURITY_ID+"=?",
+                new String[]{String.valueOf(securityId)},
+                null);
+        if(followSearchResult.moveToFirst()){
+            long idInContentProvider=followSearchResult.getLong(0);
+            if(!(idInContentProvider>0)){
+                Log.e(LOG_TAG,"Found a follow with an illegal id");
+                return;
+            }
+            ContentValues values=new ContentValues();
+            values.put(FollowContract.FollowEntry.COLUMN_URI_TO_SERVER,theFollowAndStatus.getFollowURIToServer());
+            values.put(FollowContract.FollowEntry.COLUMN_STATUS,FollowAndStatus.STATUS_SENT_SUCCESSFULLY);
+            mContext.getContentResolver().update(FollowContract.FollowEntry.CONTENT_URI,
+                    values,
+                    FollowContract.FollowEntry._ID+"=?",
+                    new String[]{String.valueOf(idInContentProvider)});
+
+
+
+        } else{
+            Log.e(LOG_TAG,"Error: Follow should already be in local database when sending it to server.");
+            return;
+        }
+
+    }
+
 
     //Helper class which will implement a task sending a follow to the server
     //Needed because we need context in that class (so we can get the right URI to post for).
 
-    private static class postFollowTask extends AsyncTask<FollowAndStatus, Void, FollowAndStatus>{
+    private  class postFollowTask extends AsyncTask<FollowAndStatus, Void, FollowAndStatus>{
     private Context mContext;
         private boolean mFollowAlreadyExists;
 
@@ -266,6 +324,10 @@ public class ConnectionServer {
                     }
                 }
 
+                //Update the follow in the database to have the server's Uri
+                writeFollowToDatabase(followSent);
+
+
                 return followSent;
 
 
@@ -301,8 +363,8 @@ public class ConnectionServer {
 
             if(followSent!=null){
             FollowProvider thedb=new FollowProvider();
-
-            thedb.addToFollowsDB(followSent);}
+            //TODO update the follow Status that the server got it!
+                }
 
         }
     }

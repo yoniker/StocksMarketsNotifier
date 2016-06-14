@@ -139,7 +139,12 @@ public class SecurityPresent extends AppCompatActivity implements View.OnLongCli
                 setValuesAccordingToAbsolutePrice();
                 mSendFollowButton.setText("Update Follow");
                 mFollowExistedAlready = true;
-                // mFollowAndStatus=FollowProvider.cursorToFollowAndStatus(result);
+                 mFollowAndStatus=FollowProvider.cursorToFollowAndStatus(result);
+                 lowerValue = result.getDouble(result.getColumnIndex(FollowContract.FollowEntry.COLUMN_PARAM1));
+                lowerValue++;
+                mLowerValueAbsolute.setText(String.valueOf(lowerValue));
+
+
 
             }
         }finally {
