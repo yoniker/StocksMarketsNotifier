@@ -14,11 +14,13 @@ import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Arrays;
 
+import dor.only.dorking.android.stocksmarketsnotifier.ConnectionServer.RequestToServer;
 import dor.only.dorking.android.stocksmarketsnotifier.DataTypes.Follow;
 import dor.only.dorking.android.stocksmarketsnotifier.DataTypes.FollowAndStatus;
 import dor.only.dorking.android.stocksmarketsnotifier.DataTypes.Security;
 import dor.only.dorking.android.stocksmarketsnotifier.Database.FollowContract.FollowEntry;
 import dor.only.dorking.android.stocksmarketsnotifier.Database.FollowContract.SecurityEntry;
+import dor.only.dorking.android.stocksmarketsnotifier.Database.FollowContract.RequestEntry;
 
 /**
  * Created by Yoni on 6/1/2016.
@@ -34,6 +36,7 @@ public class FollowProvider extends ContentProvider {
     static final int FOLLOW_WITH_ID = 101;
     static final int SECURITY_WITH_ID = 102;
     static final int SECURITY = 300;
+    static final int REQUEST=103;
 
     static final int FOLLOW_WITH_SECURITY=301;
 
@@ -67,6 +70,7 @@ public class FollowProvider extends ContentProvider {
 
         matcher.addURI(authority, FollowContract.PATH_SECURITY+"/#", SECURITY_WITH_ID);
         matcher.addURI(authority,FollowContract.PATH_FOLLOW+"/"+FollowContract.PATH_SECURITY,FOLLOW_WITH_SECURITY);
+        matcher.addURI(authority,FollowContract.PATH_REQUEST,REQUEST);
         return matcher;
     }
 
@@ -139,6 +143,8 @@ public class FollowProvider extends ContentProvider {
                 return FollowEntry.CONTENT_ITEM_TYPE;
             case FOLLOW_WITH_SECURITY:
                 return FollowEntry.CONTENT_TYPE;
+            case REQUEST:
+                return FollowContract.RequestEntry.CONTENT_ITEM_TYPE;
             default:
                 throw new UnsupportedOperationException("Unknown uri: " + uri);
         }
@@ -206,6 +212,20 @@ public class FollowProvider extends ContentProvider {
 
     }
 
+
+    public static ContentValues requestContentValues(RequestToServer theRequest){
+        ContentValues values=new ContentValues();
+        values.put(RequestEntry.COLUMN_CONTENT,theRequest.getContent());
+        values.put(RequestEntry.COLUMN_HTTPMETHOD,theRequest.getHttpMethod());
+        values.put(RequestEntry.COLUMN_RESPONSE,theRequest.getResponse());
+        values.put(RequestEntry.COLUMN_STATUS,theRequest.getStatus());
+        values.put(RequestEntry.COLUMN_URL,theRequest.getUrl());
+
+    return values;
+    }
+
+
+
     public static ContentValues securityContentValues(Security theSecurity){
         ContentValues values=new ContentValues();
         values.put(SecurityEntry.COLUMN_SECURITY_NAME,theSecurity.getName());
@@ -266,6 +286,11 @@ public class FollowProvider extends ContentProvider {
                 break;
             }
 
+            case REQUEST:{
+                retCursor=mDBHelper.getReadableDatabase().query(FollowContract.RequestEntry.TABLE_NAME,projection,selection,selectionArgs,null,null,sortOrder);
+                break;
+            }
+
             case FOLLOW_WITH_ID: {
 
 
@@ -318,6 +343,15 @@ public class FollowProvider extends ContentProvider {
                     throw new android.database.SQLException("Failed to insert row into " + uri);
                 break;
             }
+
+            case REQUEST: {
+                long _id = db.insert(FollowContract.RequestEntry.TABLE_NAME, null, values);
+                if ( _id > 0 )
+                    returnUri = FollowContract.RequestEntry.CONTENT_URI.buildUpon().appendPath(String.valueOf(_id)).build();
+                else
+                    throw new android.database.SQLException("Failed to insert row into " + uri);
+                break;
+            }
             default:
                 throw new UnsupportedOperationException("Unknown uri: " + uri);
         }
@@ -335,14 +369,20 @@ public class FollowProvider extends ContentProvider {
         // this makes delete all rows return the number of rows deleted
         if ( null == selection ) selection = "1";
         switch (match) {
-            case FOLLOW:
+            case FOLLOW:{
                 rowsDeleted = db.delete(
                         FollowEntry.TABLE_NAME, selection, selectionArgs);
-                break;
-            case SECURITY:
+                break;}
+            case SECURITY:{
                 rowsDeleted = db.delete(
                         SecurityEntry.TABLE_NAME, selection, selectionArgs);
+                break;}
+            case REQUEST:{
+                rowsDeleted = db.delete(
+                        FollowContract.RequestEntry.TABLE_NAME, selection, selectionArgs);
                 break;
+
+            }
             //For now I will not add support for paths with ID.
             default:
                 throw new UnsupportedOperationException("Unknown uri for delete: " + uri);
@@ -364,13 +404,21 @@ public class FollowProvider extends ContentProvider {
 
         switch (match) {
             case FOLLOW:
+            {
                 rowsUpdated = db.update(FollowEntry.TABLE_NAME, values, selection,
                         selectionArgs);
-                break;
+                break;}
             case SECURITY:
+            {
                 rowsUpdated = db.update(SecurityEntry.TABLE_NAME, values, selection,
                         selectionArgs);
-                break;
+                break;}
+
+            case REQUEST:
+            {
+                rowsUpdated = db.update(RequestEntry.TABLE_NAME, values, selection,
+                        selectionArgs);
+                break;}
 
             //Again, for now I will not support id appended paths.
             default:

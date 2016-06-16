@@ -21,6 +21,7 @@ public class FollowContract {
     // as the ContentProvider hasn't been given any information on what to do with "givemeroot".
     public static final String PATH_SECURITY = "security";
     public static final String PATH_FOLLOW = "follow";
+    public static final String PATH_REQUEST="request";
 
     //Some queries keys
     public static final String QUERY_KEY_SECURITY_TICKER="ticker";
@@ -38,6 +39,27 @@ public class FollowContract {
                 .appendQueryParameter(QUERY_KEY_SECURITY_TICKER,theSecurity.getTicker()).build();
     }
 
+
+    public static final class RequestEntry implements  BaseColumns{
+
+        public static final Uri CONTENT_URI =
+                BASE_CONTENT_URI.buildUpon().appendPath(PATH_REQUEST).build();
+
+        public static final String CONTENT_TYPE =
+                ContentResolver.CURSOR_DIR_BASE_TYPE + "/" + CONTENT_AUTHORITY + "/" + PATH_REQUEST;
+        public static final String CONTENT_ITEM_TYPE =
+                ContentResolver.CURSOR_ITEM_BASE_TYPE + "/" + CONTENT_AUTHORITY + "/" + PATH_REQUEST;
+
+        public static final String TABLE_NAME="requests_table";
+        public static final String COLUMN_CONTENT="content";
+        public static final String COLUMN_URL="url";
+        public static final String COLUMN_HTTPMETHOD="http_method";
+        public static final String COLUMN_RESPONSE="response";
+        public static final String COLUMN_STATUS="STATUS";
+
+
+
+    }
 
     public static final class SecurityEntry implements  BaseColumns{
 

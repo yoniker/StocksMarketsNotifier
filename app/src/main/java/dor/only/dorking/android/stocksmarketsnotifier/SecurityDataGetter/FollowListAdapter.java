@@ -1,61 +1,55 @@
 package dor.only.dorking.android.stocksmarketsnotifier.SecurityDataGetter;
 
 import android.content.Context;
+import android.database.Cursor;
+import android.support.v4.widget.CursorAdapter;
+import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.BaseAdapter;
 import android.widget.TextView;
-
-import java.util.List;
 
 import dor.only.dorking.android.stocksmarketsnotifier.DataTypes.FollowAndStatus;
 import dor.only.dorking.android.stocksmarketsnotifier.DataTypes.Security;
+import dor.only.dorking.android.stocksmarketsnotifier.Database.FollowProvider;
+import dor.only.dorking.android.stocksmarketsnotifier.R;
 
 /**
  * Created by Yoni on 6/2/2016.
  */
-public class FollowListAdapter  extends BaseAdapter {
-    private Context mContext;
-    List<FollowAndStatus> theList;
+public class FollowListAdapter  extends CursorAdapter {
 
-    public FollowListAdapter(Context c, List<FollowAndStatus> theList) {
-        mContext = c;
-        this.theList = theList;
+
+    public FollowListAdapter(Context theContext, Cursor theCursor, int flags) {
+        super(theContext, theCursor, flags);
     }
 
-    public int getCount() {
-        return theList.size();
+
+    @Override
+    public View newView(Context context, Cursor cursor, ViewGroup parent) {
+        View view = LayoutInflater.from(context).inflate(R.layout.follows_list_item, parent, false);
+
+        return view;
     }
 
-    public Object getItem(int position) {
-        return theList.get(position);
+
+
+    private String convertCursorRowToUXFormat(Cursor theCursor){
+        FollowAndStatus theFollow= FollowProvider.cursorToFollowAndStatus(theCursor);
+       Security theSecurity= theFollow.getFollow().getTheSecurity();
+        return theSecurity.getTicker()+" "+theSecurity.getName()+" "+theFollow.getPriceStarted();
+
     }
 
-    public long getItemId(int position) {
-        return position;
+
+    @Override
+    public void bindView(View view, Context context, Cursor cursor) {
+        // our view is pretty simple here --- just a text view
+        // we'll keep the UI functional with a simple (and slow!) binding.
+
+        TextView tv = (TextView)view;
+        tv.setText(convertCursorRowToUXFormat(cursor));
     }
 
-    public View getView(int position, View convertView, ViewGroup parent) {
-        TextView tv;
-        if (convertView == null) {
-            // if it's not recycled, initialize some attributes
-            //TODO if needed,create a layout file. Also see if there is a way to avoid accessing list.get(position).
-            tv = new TextView(mContext);
-            tv.setTextAppearance(mContext, android.R.style.TextAppearance_Large);
-        } else {
-            tv = (TextView) convertView;
-        }
 
-        FollowAndStatus theFollow=theList.get(position);
-
-        Security theSecurity=theList.get(position).getFollow().getTheSecurity();
-
-        tv.setText(theSecurity.getName()+"/"+theSecurity.getTicker()+" "+theFollow.getPriceStarted());
-
-
-
-
-        return tv;
-    }
 
 }

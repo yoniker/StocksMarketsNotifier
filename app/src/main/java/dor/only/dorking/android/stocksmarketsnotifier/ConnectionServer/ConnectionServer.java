@@ -74,6 +74,29 @@ public class ConnectionServer {
 
     private Context mContext;
 
+     private static boolean  isSuccessful(int status){
+          final int MIN_SUCCESS_STATUS_CODE=200;
+          final int MAX_SUCCESS_STATUS_CODE=299;
+         return (status>=MIN_SUCCESS_STATUS_CODE && status<=MAX_SUCCESS_STATUS_CODE);
+
+    }
+
+    private void handleRequestError( String content,String url, String httpMethod,String response, int status){
+        //For now,handling the error means just putting it in the database
+
+
+        RequestToServer theRequest=new RequestToServer(content,url,httpMethod,response,status);
+        ContentValues values=FollowProvider.requestContentValues(theRequest);
+        mContext.getContentResolver().insert(FollowContract.RequestEntry.CONTENT_URI,values);
+        return;
+
+
+
+    }
+
+
+
+
     public ConnectionServer(Context mContext) {
         this.mContext = mContext;
 
@@ -94,7 +117,7 @@ public class ConnectionServer {
 
                 UserFollows theUser = params[0];
                 Gson gson = new Gson();
-                String json = gson.toJson(theUser);
+                String requestContents = gson.toJson(theUser);
                 Uri builtUri;
                 if(CONNECTION_MODE_CHOSEN==CONNECTION_MODE_LOCAL) {
                     builtUri= Uri.parse(LOCAL_SERVER_BASE_URL).buildUpon().appendPath(USERS).build();
@@ -106,6 +129,8 @@ public class ConnectionServer {
                 HttpURLConnection urlConnection = null;
                 BufferedWriter out = null;
                 InputStream in = null;
+                int status=0;
+                String theResponse="";
 
                 try {
 
@@ -130,13 +155,13 @@ public class ConnectionServer {
                         out = new BufferedWriter(new OutputStreamWriter(urlSConnection.getOutputStream()));
 
                     }
-                    out.write(json);
+                    out.write(requestContents);
                     out.flush();
                     //TODO maybe in the future,if this isn't 200, try to resolve the issue or reschedule...
-                    // int status=urlConnection.getResponseCode();
+                      status=urlConnection.getResponseCode();
                    if(CONNECTION_MODE_CHOSEN==CONNECTION_MODE_LOCAL){
                     in = urlConnection.getInputStream();} else {in=urlSConnection.getInputStream();}
-                    String theResponse = Constants.convertStreamToString(in);
+                     theResponse = Constants.convertStreamToString(in);
                     //Here is an example response from the server:
                     //{"links":[{"rel":"self","url":"http://46.121.92.236/securitiesFollowServer/users/1"}],"theMessage":""}
                     JSONObject serverResponse = new JSONObject(theResponse);
@@ -162,6 +187,12 @@ public class ConnectionServer {
                     String theerror=e.toString();
                     theerror+=" ";
                 } finally {
+                    if(!isSuccessful(status)){
+                        handleRequestError(requestContents,builtUri.toString(),RequestToServer.POST,theResponse,status);
+
+                    }
+
+
                     if (urlConnection != null) {
                         urlConnection.disconnect();
                     }
@@ -274,6 +305,10 @@ public class ConnectionServer {
             //If follow already exists and we have a URI then PUT the follow to that URI.
             //If not, then just POST to the 'usual' URI.
             boolean putFollow=mFollowAlreadyExists && receivedURI!=null && !receivedURI.equals("");
+            int status=0;
+            String bodyOfMessage="";
+            URL theURL=null;
+            String theResponse="";
 
             try{
 
@@ -281,24 +316,26 @@ public class ConnectionServer {
                 gsonBuilder.registerTypeAdapter(Timestamp.class,new DateTimeSerializer());
 
                 Gson gson = gsonBuilder.create();
-                String json = gson.toJson(theFollow);
+                bodyOfMessage = gson.toJson(theFollow);
                 Uri theUri=Uri.parse(userURI).buildUpon().appendPath(SERVER_FOLLOWS_PATH).build();
-                URL theURL= new URL(theUri.toString());
-                if(putFollow){theURL=new URL(receivedURI);}
+                 theURL= new URL(theUri.toString());
+                if(putFollow){theURL=new URL(receivedURI);
+
+                }
                 urlConnection = (HttpURLConnection) theURL.openConnection();
                 urlConnection.setRequestProperty("Content-Type", "application/json");
                 //TODO setFixedLengthStreamingMode(int)
                 //urlConnection.setDoOutput(true);
                 if(putFollow) {urlConnection.setRequestMethod(PUT);} else {urlConnection.setRequestMethod(POST);}
                 out = new BufferedWriter(new OutputStreamWriter(urlConnection.getOutputStream()));
-                out.write(json);
+                out.write(bodyOfMessage);
                 out.flush();
                 //TODO maybe in the future,if this isn't 200, try to resolve the issue or reschedule...
-                // int status=urlConnection.getResponseCode();
+                status=urlConnection.getResponseCode();
                 //TODO maybe in the future,if this isn't 200, try to resolve the issue or reschedule...
                 // int status=urlConnection.getResponseCode();
                 in = urlConnection.getInputStream();
-                String theResponse = Constants.convertStreamToString(in);
+                 theResponse = Constants.convertStreamToString(in);
                 //Here is an example response from the server:
                 //{"links":[{"rel":"self","url":"http://46.121.92.236/securitiesFollowServer/users/1"}],"theMessage":""}
                 JSONObject serverResponse = new JSONObject(theResponse);
@@ -342,27 +379,18 @@ public class ConnectionServer {
 
             }
             catch(JSONException e){
-
-                String h=e.toString();
-
             }
             finally {
                 //TODO close input/output streams
+                if(!isSuccessful(status)){
+                    String httpMethod=(putFollow?RequestToServer.PUT:RequestToServer.POST);
+                    handleRequestError(bodyOfMessage,theURL.toString(),httpMethod,theResponse,status);
+
+                }
             }
 
 
             return null;
-        }
-
-        @Override
-        protected void onPostExecute(FollowAndStatus followSent) {
-            super.onPostExecute(followSent);
-
-            if(followSent!=null){
-            FollowProvider thedb=new FollowProvider();
-            //TODO update the follow Status that the server got it!
-                }
-
         }
     }
 
@@ -388,6 +416,7 @@ public class ConnectionServer {
                 String followUri=theFollow.getFollowURIToServer();
 
                 HttpURLConnection urlConnection=null;
+                int status=0;
 
 
                 try{
@@ -397,13 +426,18 @@ public class ConnectionServer {
                     //urlConnection.setDoOutput(true);
                     urlConnection.setRequestProperty("Content-Type", "application/json");
                     urlConnection.setRequestMethod(DELETE);
-                     int status=urlConnection.getResponseCode();
+                      status=urlConnection.getResponseCode();
                     //TODO handle error cases
-                    int a=++status;
 
                 }
 
                 catch(IOException e){}
+                finally {
+                    if(!isSuccessful(status)){
+                        handleRequestError("",followUri,RequestToServer.DELETE,"",status);
+
+                    }
+                }
 
 
 

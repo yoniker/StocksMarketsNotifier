@@ -49,8 +49,18 @@ public class FollowsDbHelper extends SQLiteOpenHelper implements BaseColumns {
                 SecurityEntry.COLUMN_URI_INFO_LINK+" TEXT "+
                 " );";
 
+        final String SQL_CREATE_REQUESTS_TABLE="CREATE TABLE " + RequestEntry.TABLE_NAME + " (" +
+                RequestEntry._ID + " INTEGER PRIMARY KEY," +
+                RequestEntry.COLUMN_CONTENT + " TEXT, " +
+                RequestEntry.COLUMN_HTTPMETHOD + " TEXT NOT NULL, " +
+                RequestEntry.COLUMN_URL + " TEXT NOT NULL, " +
+                RequestEntry.COLUMN_RESPONSE + " TEXT, " +
+                RequestEntry.COLUMN_STATUS + " INTEGER" +
+                " );";
+
         db.execSQL(SQL_CREATE_FOLLOW_TABLE);
         db.execSQL(SQL_CREATE_SECURITIES_TABLE);
+        db.execSQL(SQL_CREATE_REQUESTS_TABLE);
 
 
     }
@@ -60,6 +70,8 @@ public class FollowsDbHelper extends SQLiteOpenHelper implements BaseColumns {
 
         db.execSQL("DROP TABLE IF EXISTS " + FollowEntry.TABLE_NAME);
         db.execSQL("DROP TABLE IF EXISTS " + SecurityEntry.TABLE_NAME);
+        db.execSQL("DROP TABLE IF EXISTS " + RequestEntry.TABLE_NAME);
+
         onCreate(db);
 
     }
