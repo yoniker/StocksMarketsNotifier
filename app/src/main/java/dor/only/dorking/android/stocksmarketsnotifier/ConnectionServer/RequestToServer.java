@@ -12,6 +12,7 @@ public class RequestToServer {
     private String httpMethod;
     private String response;
     private int status;
+    private int numberOfTries;
 
     public static final String POST = "POST";
     public static final String GET = "GET";
@@ -58,13 +59,22 @@ public class RequestToServer {
         this.content = content;
     }
 
-    RequestToServer(){}
-    RequestToServer( String content,String url, String httpMethod,String response, int status){
+    public int getNumberOfTries() {
+        return numberOfTries;
+    }
+
+    public void setNumberOfTries(int numberOfTries) {
+        this.numberOfTries = numberOfTries;
+    }
+
+    RequestToServer(){numberOfTries=0;}
+    RequestToServer( String content,String url, String httpMethod,String response, int status,int numberOfTries){
         this.content=content;
         this.url=url;
         this.httpMethod=httpMethod;
         this.response=response;
         this.status=status;
+        this.numberOfTries=numberOfTries;
 
     }
 

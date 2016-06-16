@@ -15,17 +15,12 @@ import com.google.gson.JsonPrimitive;
 import com.google.gson.JsonSerializationContext;
 import com.google.gson.JsonSerializer;
 
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
-
 import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStreamWriter;
 import java.lang.reflect.Type;
 import java.net.HttpURLConnection;
-import java.net.MalformedURLException;
 import java.net.URL;
 import java.sql.Timestamp;
 import java.text.DateFormat;
@@ -83,12 +78,35 @@ public class ConnectionServer {
 
     private void handleRequestError( String content,String url, String httpMethod,String response, int status){
         //For now,handling the error means just putting it in the database
+        //If it already exists,let's ++numberoftries otherwise let's persist it with numberoftries=1..
+        Cursor requestSearchResult=null;
+        try{
 
+         requestSearchResult=mContext.getContentResolver().query(FollowContract.RequestEntry.CONTENT_URI,
+                new String[]{FollowContract.RequestEntry.COLUMN_TRIES},
+                FollowContract.sRequestDetails,
+                new String[]{content,url,httpMethod},
+                null);
 
-        RequestToServer theRequest=new RequestToServer(content,url,httpMethod,response,status);
+        if(requestSearchResult.moveToFirst()){
+            int tries=requestSearchResult.getInt(0);
+            RequestToServer theRequest=new RequestToServer(content,url,httpMethod,response,status,++tries);
+            ContentValues values=FollowProvider.requestContentValues(theRequest);
+            mContext.getContentResolver().update(FollowContract.RequestEntry.CONTENT_URI,
+                    values,
+                    FollowContract.sRequestDetails,
+                    new String[]{content,url,httpMethod});
+
+        }
+
+        else{
+        RequestToServer theRequest=new RequestToServer(content,url,httpMethod,response,status,1);
         ContentValues values=FollowProvider.requestContentValues(theRequest);
-        mContext.getContentResolver().insert(FollowContract.RequestEntry.CONTENT_URI,values);
-        return;
+        mContext.getContentResolver().insert(FollowContract.RequestEntry.CONTENT_URI,values);}
+        return;}
+        finally {
+            if(requestSearchResult!=null){requestSearchResult.close();}
+        }
 
 
 
@@ -99,6 +117,110 @@ public class ConnectionServer {
 
     public ConnectionServer(Context mContext) {
         this.mContext = mContext;
+
+    }
+
+    @WorkerThread
+    public ServerResponse handleRequest(RequestToServer theRequest){
+        final String HTTPS="HTTPS";
+        if(theRequest==null){return null;}
+        String method=theRequest.getHttpMethod();
+        String content=theRequest.getContent();
+        Uri theUri=Uri.parse(theRequest.getUrl());
+        String scheme=theUri.getScheme(); //Either http or https
+        boolean schemeIsHttps=scheme.toUpperCase().equals(HTTPS);
+        HttpsURLConnection urlSConnection=null;
+        HttpURLConnection urlConnection = null;
+        BufferedWriter out = null;
+        InputStream in = null;
+        int status=0;
+        String theResponse="";
+
+        try {
+
+            URL url = new URL(theUri.toString());
+
+            //  open the connection
+
+            if (!schemeIsHttps) {
+
+                urlConnection = (HttpURLConnection) url.openConnection();
+                urlConnection.setRequestProperty("Content-Type", "application/json");
+                //TODO setFixedLengthStreamingMode(int)
+                if (method != null && method != "") {
+                    urlConnection.setRequestMethod(method);
+                }
+                out = new BufferedWriter(new OutputStreamWriter(urlConnection.getOutputStream()));
+            } else {
+                urlSConnection = (HttpsURLConnection) url.openConnection();
+                urlSConnection.setRequestProperty("Content-Type", "application/json");
+                if (method != null && method != "") {
+                    urlSConnection.setRequestMethod(method);
+                }
+                out = new BufferedWriter(new OutputStreamWriter(urlSConnection.getOutputStream()));
+
+            }
+
+            if(content!=null && !content.equals(""))
+            {out.write(content);
+            out.flush();}
+            status = urlConnection.getResponseCode();
+
+            if (!schemeIsHttps) {
+                in = urlConnection.getInputStream();
+            } else {
+                in = urlSConnection.getInputStream();
+            }
+            theResponse = Constants.convertStreamToString(in);
+
+        } catch(Exception e){}
+
+        finally{
+            if(!isSuccessful(status)){
+                handleRequestError(content,theRequest.getUrl(),method,theResponse,status);
+            } else {
+                deleteRequestFromDBIfExists(theRequest);
+
+            }
+            try{
+                if(in!=null){in.close();}
+                if(out!=null){out.close();}
+                if(urlConnection!=null){urlConnection.disconnect();}
+                if(urlSConnection!=null){urlSConnection.disconnect();}
+
+
+
+            }
+
+            catch(IOException e){}
+
+        }
+
+
+
+
+
+
+
+        ServerResponse serverResponse=new ServerResponse();
+        serverResponse.setStatus(status);
+        serverResponse.setBody(theResponse);
+
+
+
+        return serverResponse;
+
+
+
+    }
+
+    private void deleteRequestFromDBIfExists(RequestToServer theRequest){
+
+       mContext.getContentResolver().delete(FollowContract.RequestEntry.CONTENT_URI,
+               FollowContract.sRequestDetails,
+               new String[]{theRequest.getContent(),theRequest.getUrl(),theRequest.getHttpMethod()});
+
+
 
     }
 
@@ -124,83 +246,8 @@ public class ConnectionServer {
                 }
                 else{
                     builtUri= Uri.parse(HEROKU_SERVER_BASE_URL).buildUpon().appendPath(USERS).build(); }
-
-                HttpsURLConnection urlSConnection=null;
-                HttpURLConnection urlConnection = null;
-                BufferedWriter out = null;
-                InputStream in = null;
-                int status=0;
-                String theResponse="";
-
-                try {
-
-                    URL url = new URL(builtUri.toString());
-
-                    //  open the connection
-
-                    if(CONNECTION_MODE_CHOSEN==CONNECTION_MODE_LOCAL){
-
-                    urlConnection = (HttpURLConnection) url.openConnection();
-                    urlConnection.setRequestProperty("Content-Type", "application/json");
-                    //TODO setFixedLengthStreamingMode(int)
-                //    urlConnection.setDoOutput(true);
-                    urlConnection.setRequestMethod(POST);
-                    out = new BufferedWriter(new OutputStreamWriter(urlConnection.getOutputStream()));}
-                    else if(CONNECTION_MODE_CHOSEN==CONNECTION_MODE_HEROKU){
-                        urlSConnection = (HttpsURLConnection) url.openConnection();
-                        urlSConnection.setRequestProperty("Content-Type", "application/json");
-                        //TODO setFixedLengthStreamingMode(int)
-                        //    urlConnection.setDoOutput(true);
-                        urlSConnection.setRequestMethod(POST);
-                        out = new BufferedWriter(new OutputStreamWriter(urlSConnection.getOutputStream()));
-
-                    }
-                    out.write(requestContents);
-                    out.flush();
-                    //TODO maybe in the future,if this isn't 200, try to resolve the issue or reschedule...
-                      status=urlConnection.getResponseCode();
-                   if(CONNECTION_MODE_CHOSEN==CONNECTION_MODE_LOCAL){
-                    in = urlConnection.getInputStream();} else {in=urlSConnection.getInputStream();}
-                     theResponse = Constants.convertStreamToString(in);
-                    //Here is an example response from the server:
-                    //{"links":[{"rel":"self","url":"http://46.121.92.236/securitiesFollowServer/users/1"}],"theMessage":""}
-                    JSONObject serverResponse = new JSONObject(theResponse);
-                    JSONArray allLinks = serverResponse.getJSONArray(SERVER_LINKS);
-                    for (int i = 0; i < allLinks.length(); ++i) {
-                        JSONObject link = (JSONObject) allLinks.get(i);
-                        //Let's check if it is the 'self' link, which should give us the new user which was created
-                        //If so,then we should save it into sharedpreferences
-                        if (link.has(SERVER_REL) && link.has(SERVER_URL)) {
-                            if (link.getString(SERVER_REL).equals(SERVER_SELF)) {
-                                Constants.writeToSharedPref(mContext, Constants.SP_USER_LINK, link.getString(SERVER_URL));
-
-                            }
-
-                        }
-
-
-                    }
-
-                    //urlConnection.connect();
-                } catch (IOException e) {
-                    Log.e(LOG_TAG, "Error ", e);
-                    String theerror=e.toString();
-                    theerror+=" ";
-                } finally {
-                    if(!isSuccessful(status)){
-                        handleRequestError(requestContents,builtUri.toString(),RequestToServer.POST,theResponse,status);
-
-                    }
-
-
-                    if (urlConnection != null) {
-                        urlConnection.disconnect();
-                    }
-                    try{if(in!=null){in.close();}
-                    if(out!=null){out.close();}} catch(IOException e){}
-
-
-
+                RequestToServer theRequest=new RequestToServer(requestContents,builtUri.toString(),RequestToServer.POST,"",0,0);
+                handleRequest(theRequest);
 
                     return null;
 
@@ -208,7 +255,6 @@ public class ConnectionServer {
                 }
 
 
-            }
 
 
         };
@@ -305,10 +351,21 @@ public class ConnectionServer {
             //If follow already exists and we have a URI then PUT the follow to that URI.
             //If not, then just POST to the 'usual' URI.
             boolean putFollow=mFollowAlreadyExists && receivedURI!=null && !receivedURI.equals("");
+            String httpMethod= putFollow? RequestToServer.PUT:RequestToServer.POST;
             int status=0;
             String bodyOfMessage="";
             URL theURL=null;
             String theResponse="";
+            GsonBuilder gsonBuilder = new GsonBuilder();
+            gsonBuilder.registerTypeAdapter(Timestamp.class,new DateTimeSerializer());
+
+            Gson gson = gsonBuilder.create();
+            bodyOfMessage = gson.toJson(theFollow);
+            Uri theUri=Uri.parse(userURI).buildUpon().appendPath(SERVER_FOLLOWS_PATH).build();
+            RequestToServer theRequest=new RequestToServer(bodyOfMessage,theUri.toString(),httpMethod,"",0,0);
+            ServerResponse serverResponse=handleRequest(theRequest);
+
+            /*
 
             try{
 
@@ -332,7 +389,6 @@ public class ConnectionServer {
                 out.flush();
                 //TODO maybe in the future,if this isn't 200, try to resolve the issue or reschedule...
                 status=urlConnection.getResponseCode();
-                //TODO maybe in the future,if this isn't 200, try to resolve the issue or reschedule...
                 // int status=urlConnection.getResponseCode();
                 in = urlConnection.getInputStream();
                  theResponse = Constants.convertStreamToString(in);
@@ -387,7 +443,7 @@ public class ConnectionServer {
                     handleRequestError(bodyOfMessage,theURL.toString(),httpMethod,theResponse,status);
 
                 }
-            }
+            } */
 
 
             return null;

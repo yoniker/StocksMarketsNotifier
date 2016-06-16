@@ -28,7 +28,11 @@ public class FollowContract {
     public static final String QUERY_KEY_SECURITY_STOCKS_MARKET="stocks_market";
 
     //ticker=? and stock_market_name=?
-    public static final String sSecurityDetails=  SecurityEntry.COLUMN_TICKER+"=? and "+SecurityEntry.COLUMN_STOCKMARKETNAME+"=?";
+    public static final String sSecurityDetails=  SecurityEntry.COLUMN_TICKER+"=? AND "+SecurityEntry.COLUMN_STOCKMARKETNAME+"=?";
+
+    public static final String sRequestDetails=RequestEntry.COLUMN_CONTENT+"=? AND "+
+            RequestEntry.COLUMN_URL+"=? AND "+
+            RequestEntry.COLUMN_HTTPMETHOD+"=?";
 
     //The path follow/security which represents the data of a follow with the data on the security as well.
     public static final Uri sFollowWithSecurity=FollowContract.BASE_CONTENT_URI.buildUpon().appendPath(FollowContract.PATH_FOLLOW).appendPath(FollowContract.PATH_SECURITY).build();
@@ -56,6 +60,7 @@ public class FollowContract {
         public static final String COLUMN_HTTPMETHOD="http_method";
         public static final String COLUMN_RESPONSE="response";
         public static final String COLUMN_STATUS="STATUS";
+        public static final String COLUMN_TRIES="tries";
 
 
 

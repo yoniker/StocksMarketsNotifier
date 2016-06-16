@@ -55,7 +55,8 @@ public class FollowsDbHelper extends SQLiteOpenHelper implements BaseColumns {
                 RequestEntry.COLUMN_HTTPMETHOD + " TEXT NOT NULL, " +
                 RequestEntry.COLUMN_URL + " TEXT NOT NULL, " +
                 RequestEntry.COLUMN_RESPONSE + " TEXT, " +
-                RequestEntry.COLUMN_STATUS + " INTEGER" +
+                RequestEntry.COLUMN_STATUS + " INTEGER," +
+                RequestEntry.COLUMN_TRIES+" INTEGER"+
                 " );";
 
         db.execSQL(SQL_CREATE_FOLLOW_TABLE);

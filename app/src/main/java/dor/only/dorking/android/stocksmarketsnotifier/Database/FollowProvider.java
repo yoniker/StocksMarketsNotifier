@@ -220,6 +220,7 @@ public class FollowProvider extends ContentProvider {
         values.put(RequestEntry.COLUMN_RESPONSE,theRequest.getResponse());
         values.put(RequestEntry.COLUMN_STATUS,theRequest.getStatus());
         values.put(RequestEntry.COLUMN_URL,theRequest.getUrl());
+        values.put(RequestEntry.COLUMN_TRIES,theRequest.getNumberOfTries());
 
     return values;
     }
