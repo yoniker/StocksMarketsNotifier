@@ -2,8 +2,11 @@ package dor.only.dorking.android.stocksmarketsnotifier.Contants;
 
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.database.Cursor;
 
+import dor.only.dorking.android.stocksmarketsnotifier.DataTypes.Security;
 import dor.only.dorking.android.stocksmarketsnotifier.DataTypes.UserFollows;
+import dor.only.dorking.android.stocksmarketsnotifier.Database.FollowContract;
 
 /**
  * Created by Yoni on 5/23/2016.
@@ -123,5 +126,21 @@ public class Constants {
 
 
     }
+
+    public static final long SECURITY_NOT_FOUND=-1;
+    public static long getSecurityId(Context theContext,Security theSecurity){
+        if(theSecurity==null || theContext==null){return SECURITY_NOT_FOUND;}
+
+    String ticker=theSecurity.getTicker();
+    String stocksMarketName=theSecurity.getStocksMarketName();
+
+    Cursor securitySearchResult=theContext.getContentResolver().query(FollowContract.SecurityEntry.CONTENT_URI,
+            new String[]{FollowContract.SecurityEntry._ID},
+            FollowContract.sSecurityDetails,
+            new String[]{ticker,stocksMarketName}, null);
+    if(!securitySearchResult.moveToFirst()){
+        return SECURITY_NOT_FOUND;
+    }
+   return securitySearchResult.getLong(0);}
 
 }

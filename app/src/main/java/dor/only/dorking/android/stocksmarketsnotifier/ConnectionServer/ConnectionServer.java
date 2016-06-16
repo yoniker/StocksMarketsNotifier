@@ -46,11 +46,12 @@ import dor.only.dorking.android.stocksmarketsnotifier.Database.FollowProvider;
  * This class represents the connection to the server, and is in charge of sending requests off the main thread to the server
  */
 public class ConnectionServer {
-    private static final String SERVER_NAME = "46.121.92.82:8080";
+    private static final String SERVER_NAME = "46.121.92.236:8080";
     private static final String USERS = "users";
     private static final String POST = "POST";
     private static final String GET = "GET";
     private static final String PUT = "PUT";
+    private static final String DELETE="DELETE";
     private static final String LOG_TAG = "CONNECTIONSERVER";
     private final static String LOCAL_SERVER_BASE_URL = "http://" + SERVER_NAME + "/simpleapp";
     //When sending users for example to Heroku the address should be https://limitless-forest-61362.herokuapp.com/users
@@ -190,21 +191,14 @@ public class ConnectionServer {
         //For now we are assuming that each security has at most one follow so we can find it based on that
         //Let's find the security ID first (based on its ticker and stock market).
 
-        String ticker=theFollowAndStatus.getFollow().getTheSecurity().getTicker();
-        String stocksMarketName=theFollowAndStatus.getFollow().getTheSecurity().getStocksMarketName();
 
-        Cursor securitySearchResult=mContext.getContentResolver().query(FollowContract.SecurityEntry.CONTENT_URI,
-                new String[]{FollowContract.SecurityEntry._ID},
-                FollowContract.sSecurityDetails,
-                new String[]{ticker,stocksMarketName}, null);
-        if(!securitySearchResult.moveToFirst()){
-            //If there is no follow like that,we can either 1. Decide that the server knows more than the user's device DB about his own follows
-            //or 2.as I've decided, think that the user's own database is more up-to-date (maybe the user deleted the follow before this call?) and do nothing.
-            Log.e(LOG_TAG,"Error: Follow should already be in local database when sending it to server.");
+        long securityId=Constants.getSecurityId(mContext,theFollowAndStatus.getFollow().getTheSecurity());
+        if(securityId==Constants.SECURITY_NOT_FOUND){
+            //If there is no such security that exists on the device, I am going to assume that the local device is more up-to-date than the server.
+            Log.e(LOG_TAG,"Follow should already be in local database when sending it to server.");
+
             return;
         }
-        long securityId=securitySearchResult.getLong(0);
-
 
 
 
@@ -231,7 +225,7 @@ public class ConnectionServer {
 
 
         } else{
-            Log.e(LOG_TAG,"Error: Follow should already be in local database when sending it to server.");
+            Log.e(LOG_TAG,"Follow should already be in local database when sending it to server.");
             return;
         }
 
@@ -352,6 +346,9 @@ public class ConnectionServer {
                 String h=e.toString();
 
             }
+            finally {
+                //TODO close input/output streams
+            }
 
 
             return null;
@@ -381,6 +378,43 @@ public class ConnectionServer {
 
 
         }
+
+    public void deleteFromServer(FollowAndStatus theFollow){
+        AsyncTask<FollowAndStatus,Void,Void> deleteTask=new AsyncTask<FollowAndStatus, Void, Void>() {
+            @Override
+            protected Void doInBackground(FollowAndStatus... params) {
+                FollowAndStatus theFollow=params[0];
+                if(theFollow==null){return null;}
+                String followUri=theFollow.getFollowURIToServer();
+
+                HttpURLConnection urlConnection=null;
+
+
+                try{
+                    URL theURL= new URL(followUri);
+                    urlConnection = (HttpURLConnection) theURL.openConnection();
+                    //TODO setFixedLengthStreamingMode(int)
+                    //urlConnection.setDoOutput(true);
+                    urlConnection.setRequestProperty("Content-Type", "application/json");
+                    urlConnection.setRequestMethod(DELETE);
+                     int status=urlConnection.getResponseCode();
+                    //TODO handle error cases
+                    int a=++status;
+
+                }
+
+                catch(IOException e){}
+
+
+
+
+                return null;
+            }
+        };
+
+
+        deleteTask.execute(theFollow);
+    }
 
 
 

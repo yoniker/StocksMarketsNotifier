@@ -110,6 +110,12 @@
 
         </LinearLayout>
     </HorizontalScrollView>
+        <LinearLayout
+            android:id="@+id/ll_action_buttons"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            >
         <Button
             android:id="@+id/button_start_follow"
             android:layout_width="wrap_content"
@@ -117,6 +123,14 @@
             android:text="@string/start_follow"
             android:layout_gravity="center_horizontal"
             />
+        <Button
+            android:id="@+id/button_stop_follow"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/stop_follow"
+            android:visibility="gone"
+            />
+        </LinearLayout>
     </LinearLayout>
 
 

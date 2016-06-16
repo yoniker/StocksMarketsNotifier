@@ -41,6 +41,7 @@ public class SecurityPresent extends AppCompatActivity implements View.OnLongCli
     private boolean mLoadedRTValues=false;
     private RealTimeSecurityData mRealTimeSecurityData=null;
     private Button mSendFollowButton;
+    private Button mDeleteFollowButton;
     private boolean mFollowExistedAlready=false;
     private FollowAndStatus mFollowAndStatus=null;
 
@@ -61,6 +62,7 @@ public class SecurityPresent extends AppCompatActivity implements View.OnLongCli
         (mLowerValueAbsolute=(EditText)findViewById(R.id.editText_lower_value_absolute)).setOnFocusChangeListener(this);
         (mLowerValuePercents=(EditText)findViewById(R.id.editText_lower_value_percents)).setOnFocusChangeListener(this);
         (mSendFollowButton=(Button)findViewById(R.id.button_start_follow)).setOnClickListener(this);
+        (mDeleteFollowButton=(Button) findViewById(R.id.button_stop_follow)).setOnClickListener(this);
 
 
         mProgressBarRealTimeValue=(ProgressBar)findViewById(R.id.progressbar_real_time_values);
@@ -139,10 +141,8 @@ public class SecurityPresent extends AppCompatActivity implements View.OnLongCli
                 setValuesAccordingToAbsolutePrice();
                 mSendFollowButton.setText("Update Follow");
                 mFollowExistedAlready = true;
-                 mFollowAndStatus=FollowProvider.cursorToFollowAndStatus(result);
-                 lowerValue = result.getDouble(result.getColumnIndex(FollowContract.FollowEntry.COLUMN_PARAM1));
-                lowerValue++;
-                mLowerValueAbsolute.setText(String.valueOf(lowerValue));
+                mDeleteFollowButton.setVisibility(View.VISIBLE);
+                mFollowAndStatus=FollowProvider.cursorToFollowAndStatus(result);
 
 
 
@@ -377,69 +377,110 @@ public class SecurityPresent extends AppCompatActivity implements View.OnLongCli
 
     }
 
+    //a method which invokes when the user wants to start following (or update the information of an existing follow)
+
+    private void sendFollow(){
+
+        //Alright, First of all we need to make sure that the values we have for high/low are valid
+        String  higherValueInTextbox=mHigherValueAbsolute.getText().toString();
+        String lowerValueInTextbox=mLowerValueAbsolute.getText().toString();
+        if(higherValueInTextbox.equals("") || lowerValueInTextbox.equals("")){
+            Toast.makeText(this,"You need to fill both high and low limits to follow!",Toast.LENGTH_LONG).show();
+            return;
+        }
+        double higherValue=Double.valueOf(higherValueInTextbox);
+        double lowerValue=Double.valueOf(lowerValueInTextbox);
+        double currentPrice=mRealTimeSecurityData.getPrice();
+        if(lowerValue>=currentPrice || higherValue<=currentPrice){
+            Toast.makeText(this,"Can't follow since current price is already within those limits!",Toast.LENGTH_LONG).show();
+            return;
+
+        }
+
+        if(!Constants.followReady(this)){
+            Toast.makeText(this,"Some information is missing on file,is server down?",Toast.LENGTH_LONG).show();
+            return;
+
+        }
+
+        //Let's prepare the follow
+        Follow theFollow=new Follow();
+        theFollow.setFollowType(Follow.FOLLOW_TYPE_BETWEEN);
+        theFollow.setTheSecurity(mTheSecurity);
+        double[] theArray=new double[Follow.NUMBER_OF_PARAMETERS];
+        theArray[0]=lowerValue;
+        theArray[1]=higherValue;
+        theFollow.setFollowParams(theArray);
+        Timestamp rightNow=new Timestamp(Calendar.getInstance().getTime().getTime());
+        theFollow.setStart(rightNow);
+        theFollow.setExpiry(rightNow);
+
+        ConnectionServer connectionServer=new ConnectionServer(this);
+        FollowAndStatus followToSend= new FollowAndStatus();
+        followToSend.setFollow(theFollow);
+        if(mFollowExistedAlready && mFollowAndStatus!=null){
+            followToSend.setFollowURIToServer(mFollowAndStatus.getFollowURIToServer());
+
+        }
+        connectionServer.sendToServer(followToSend,mFollowExistedAlready);
+        FollowAndStatus followAndStatus=new FollowAndStatus();
+        followAndStatus.setFollow(theFollow);
+        //TODO change the status when we know it is successful (launch a service?)
+        followAndStatus.setStatus(FollowAndStatus.STATUS_SENT);
+        followAndStatus.setPriceStarted(mRealTimeSecurityData.getPrice());
+        //TODO error messages etc when it comes to the database
+        //TODO take this off the main thread (AsyncTask).
+
+        addToFollowsDB(followAndStatus);
+        Intent launchFollowsList=new Intent(this,FollowsListPresent.class);
+        startActivity(launchFollowsList);
+
+
+
+
+    }
+
+
+    private void deleteFollow(){
+
+        //First let's find the security ID
+        long securityId=Constants.getSecurityId(this,mTheSecurity);
+        if(securityId!=Constants.SECURITY_NOT_FOUND){
+            //TODO do this off the UI thread (Asynctask)
+            getContentResolver().delete(FollowContract.FollowEntry.CONTENT_URI,
+                    FollowContract.FollowEntry.COLUMN_SECURITY_ID+"=?",
+                    new String[]{String.valueOf(securityId)}
+                    );
+            getContentResolver().delete(FollowContract.SecurityEntry.CONTENT_URI,
+                    FollowContract.SecurityEntry._ID+"=?",
+                    new String[]{String.valueOf(securityId)});
+            //TODO contact the server and delete the follow
+            ConnectionServer connectionServer=new ConnectionServer(this);
+            if(mFollowAndStatus!=null) {connectionServer.deleteFromServer(mFollowAndStatus);}
+
+
+        }
+
+        mDeleteFollowButton.setVisibility(View.GONE);
+        mFollowExistedAlready=false;
+        mFollowAndStatus=null;
+        mLowerValueAbsolute.setText("");
+        mLowerValuePercents.setText("");
+        mHigherValueAbsolute.setText("");
+        mHigherValuePercents.setText("");
+
+
+
+    }
+
     @Override
     public void onClick(View v) {
         if(v==mSendFollowButton){
-            //Alright, First of all we need to make sure that the values we have for high/low are valid
-            String  higherValueInTextbox=mHigherValueAbsolute.getText().toString();
-            String lowerValueInTextbox=mLowerValueAbsolute.getText().toString();
-            if(higherValueInTextbox.equals("") || lowerValueInTextbox.equals("")){
-                Toast.makeText(this,"You need to fill both high and low limits to follow!",Toast.LENGTH_LONG).show();
-                return;
-            }
-            double higherValue=Double.valueOf(higherValueInTextbox);
-            double lowerValue=Double.valueOf(lowerValueInTextbox);
-            double currentPrice=mRealTimeSecurityData.getPrice();
-            if(lowerValue>=currentPrice || higherValue<=currentPrice){
-                Toast.makeText(this,"Can't follow since current price is already within those limits!",Toast.LENGTH_LONG).show();
-                return;
+            sendFollow();
+        }
 
-            }
-
-            if(!Constants.followReady(this)){
-                Toast.makeText(this,"Some information is missing on file,is server down?",Toast.LENGTH_LONG).show();
-                return;
-
-            }
-
-            //Let's prepare the follow
-            Follow theFollow=new Follow();
-            theFollow.setFollowType(Follow.FOLLOW_TYPE_BETWEEN);
-            theFollow.setTheSecurity(mTheSecurity);
-            double[] theArray=new double[Follow.NUMBER_OF_PARAMETERS];
-            theArray[0]=lowerValue;
-            theArray[1]=higherValue;
-            theFollow.setFollowParams(theArray);
-            Timestamp rightNow=new Timestamp(Calendar.getInstance().getTime().getTime());
-            theFollow.setStart(rightNow);
-            theFollow.setExpiry(rightNow);
-
-            ConnectionServer connectionServer=new ConnectionServer(this);
-            FollowAndStatus followToSend= new FollowAndStatus();
-            followToSend.setFollow(theFollow);
-            if(mFollowExistedAlready && mFollowAndStatus!=null){
-                followToSend.setFollowURIToServer(mFollowAndStatus.getFollowURIToServer());
-
-            }
-            connectionServer.sendToServer(followToSend,mFollowExistedAlready);
-            FollowAndStatus followAndStatus=new FollowAndStatus();
-            followAndStatus.setFollow(theFollow);
-            //TODO change the status when we know it is successful (launch a service?)
-            followAndStatus.setStatus(FollowAndStatus.STATUS_SENT);
-            followAndStatus.setPriceStarted(mRealTimeSecurityData.getPrice());
-            //TODO error messages etc when it comes to the database
-            //TODO take this off the main thread (AsyncTask).
-
-            addToFollowsDB(followAndStatus);
-            Intent launchFollowsList=new Intent(this,FollowsListPresent.class);
-            startActivity(launchFollowsList);
-
-
-
-
-
-
-
+        if(v==mDeleteFollowButton){
+            deleteFollow();
 
         }
     }
