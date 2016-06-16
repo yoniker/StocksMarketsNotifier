@@ -328,7 +328,7 @@ public class SecurityPresent extends AppCompatActivity implements View.OnLongCli
 
 
 
-        if(securitySearchResult.moveToFirst()){securityId=securitySearchResult.getLong(securitySearchResult.getColumnIndex(FollowContract.SecurityEntry._ID));
+        if(securitySearchResult.moveToFirst()){securityId=securitySearchResult.getLong(0);
         } else {
             Uri addedSecurityUri=getContentResolver().insert(FollowContract.SecurityEntry.CONTENT_URI,FollowProvider.securityContentValues(theSecurity));
             securityId= ContentUris.parseId(addedSecurityUri);
@@ -422,16 +422,16 @@ public class SecurityPresent extends AppCompatActivity implements View.OnLongCli
             followToSend.setFollowURIToServer(mFollowAndStatus.getFollowURIToServer());
 
         }
-        connectionServer.sendToServer(followToSend,mFollowExistedAlready);
         FollowAndStatus followAndStatus=new FollowAndStatus();
         followAndStatus.setFollow(theFollow);
         //TODO change the status when we know it is successful (launch a service?)
         followAndStatus.setStatus(FollowAndStatus.STATUS_SENT);
         followAndStatus.setPriceStarted(mRealTimeSecurityData.getPrice());
-        //TODO error messages etc when it comes to the database
         //TODO take this off the main thread (AsyncTask).
-
         addToFollowsDB(followAndStatus);
+        connectionServer.sendToServer(followToSend,mFollowExistedAlready);
+
+
         Intent launchFollowsList=new Intent(this,FollowsListPresent.class);
         startActivity(launchFollowsList);
 

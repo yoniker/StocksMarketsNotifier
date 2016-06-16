@@ -15,6 +15,10 @@ import com.google.gson.JsonPrimitive;
 import com.google.gson.JsonSerializationContext;
 import com.google.gson.JsonSerializer;
 
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
 import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.InputStream;
@@ -145,7 +149,8 @@ public class ConnectionServer {
             if (!schemeIsHttps) {
 
                 urlConnection = (HttpURLConnection) url.openConnection();
-                urlConnection.setRequestProperty("Content-Type", "application/json");
+                urlConnection.setRequestProperty("content-type", "application/json");
+                urlConnection.setRequestProperty("accept","application/json");
                 //TODO setFixedLengthStreamingMode(int)
                 if (method != null && method != "") {
                     urlConnection.setRequestMethod(method);
@@ -164,7 +169,6 @@ public class ConnectionServer {
             if(content!=null && !content.equals(""))
             {out.write(content);
             out.flush();}
-            status = urlConnection.getResponseCode();
 
             if (!schemeIsHttps) {
                 in = urlConnection.getInputStream();
@@ -172,6 +176,7 @@ public class ConnectionServer {
                 in = urlSConnection.getInputStream();
             }
             theResponse = Constants.convertStreamToString(in);
+            status = urlConnection.getResponseCode();
 
         } catch(Exception e){}
 
@@ -247,7 +252,29 @@ public class ConnectionServer {
                 else{
                     builtUri= Uri.parse(HEROKU_SERVER_BASE_URL).buildUpon().appendPath(USERS).build(); }
                 RequestToServer theRequest=new RequestToServer(requestContents,builtUri.toString(),RequestToServer.POST,"",0,0);
-                handleRequest(theRequest);
+               ServerResponse serverResponse= handleRequest(theRequest);
+
+
+
+
+                try{
+                JSONObject serverResponseInJson = new JSONObject(serverResponse.getBody());
+                JSONArray allLinks = serverResponseInJson.getJSONArray(SERVER_LINKS);
+                for (int i = 0; i < allLinks.length(); ++i) {
+                    JSONObject link = (JSONObject) allLinks.get(i);
+                    //Let's check if it is the 'self' link, which should give us the new user which was created
+                    //If so,then we should save it into sharedpreferences
+                    if (link.has(SERVER_REL) && link.has(SERVER_URL)) {
+                        if (link.getString(SERVER_REL).equals(SERVER_SELF)) {
+                            Constants.writeToSharedPref(mContext, Constants.SP_USER_LINK, link.getString(SERVER_URL));
+
+                        }
+
+                    } }
+                }
+
+                catch(JSONException e){}
+
 
                     return null;
 
@@ -361,9 +388,33 @@ public class ConnectionServer {
 
             Gson gson = gsonBuilder.create();
             bodyOfMessage = gson.toJson(theFollow);
-            Uri theUri=Uri.parse(userURI).buildUpon().appendPath(SERVER_FOLLOWS_PATH).build();
-            RequestToServer theRequest=new RequestToServer(bodyOfMessage,theUri.toString(),httpMethod,"",0,0);
+            Uri theUriForNewFollows=Uri.parse(userURI).buildUpon().appendPath(SERVER_FOLLOWS_PATH).build();
+            String url=putFollow?receivedURI:theUriForNewFollows.toString();
+            RequestToServer theRequest=new RequestToServer(bodyOfMessage,url,httpMethod,"",0,0);
             ServerResponse serverResponse=handleRequest(theRequest);
+            FollowAndStatus followSent=null;
+            try {
+                JSONObject serverResponseInJson = new JSONObject(serverResponse.getBody());
+                JSONArray allLinks = serverResponseInJson.getJSONArray(SERVER_LINKS);
+                followSent = new FollowAndStatus();
+                followSent.setFollow(theFollow);
+                followSent.setStatus(FollowAndStatus.STATUS_SENT_SUCCESSFULLY);
+                for (int i = 0; i < allLinks.length(); ++i) {
+                    JSONObject link = (JSONObject) allLinks.get(i);
+                    //Let's check if it is the 'self' link, which should give us the URI for the follow
+                    if (link.has(SERVER_REL) && link.has(SERVER_URL)) {
+                        if (link.getString(SERVER_REL).equals(SERVER_SELF)) {
+                            followSent.setFollowURIToServer(link.getString(SERVER_URL));
+
+                        }
+
+                    }
+                }
+            } catch (JSONException e){}
+
+            //Update the follow in the database to have the server's Uri
+            if(isSuccessful(serverResponse.getStatus())) {writeFollowToDatabase(followSent);}
+
 
             /*
 
