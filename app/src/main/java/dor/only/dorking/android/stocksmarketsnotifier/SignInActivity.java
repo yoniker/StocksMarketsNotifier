@@ -39,11 +39,7 @@ public class SignInActivity extends AppCompatActivity implements View.OnClickLis
         mSignInButton=(Button)findViewById(R.id.button_sign_in);
         mTextBox=(EditText)findViewById(R.id.etext_user_name_email);
         mSignInButton.setOnClickListener(this);
-        if(Constants.hasId(this)){
-            //Automatic sign in
-            signIn();
 
-        }
 
         if (checkPlayServices()) {
             // Because this is the initial creation of the app, we'll want to be certain we have
@@ -58,6 +54,17 @@ public class SignInActivity extends AppCompatActivity implements View.OnClickLis
 
 
 
+    }
+
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+        if(Constants.hasId(this)){
+            //Automatic sign in
+            signIn();
+
+        }
     }
 
     private void signIn(){

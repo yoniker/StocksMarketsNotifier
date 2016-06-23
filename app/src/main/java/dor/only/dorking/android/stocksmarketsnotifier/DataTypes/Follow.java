@@ -1,5 +1,8 @@
 package dor.only.dorking.android.stocksmarketsnotifier.DataTypes;
 
+import android.os.Parcel;
+import android.os.Parcelable;
+
 import java.sql.Timestamp;
 
 
@@ -11,7 +14,43 @@ import java.sql.Timestamp;
  * 2.The other follow details, eg type of follow,and parameters associated with the follow
  */
 
-public class Follow {
+public class Follow implements Parcelable {
+
+    public int describeContents() {
+        return 0;
+    }
+
+    public void writeToParcel(Parcel out, int flags) {
+        getTheSecurity().writeToParcel(out,flags);
+        out.writeString(getFollowType());
+        out.writeLong(getStart().getTime());
+        out.writeLong(getExpiry().getTime());
+        out.writeDoubleArray(getFollowParams());
+    }
+
+    public static final Parcelable.Creator<Follow> CREATOR
+            = new Parcelable.Creator<Follow>() {
+        public Follow createFromParcel(Parcel in) {
+            Follow theFollow= new Follow();
+            Security theSecurity=in.readParcelable(Security.class.getClassLoader());
+            theFollow.setTheSecurity(theSecurity);
+            theFollow.setFollowType(in.readString());
+            theFollow.setStart(new Timestamp(in.readLong()));
+            theFollow.setExpiry(new Timestamp(in.readLong()));
+            double[] theParams=new double[Follow.NUMBER_OF_PARAMETERS];
+            in.readDoubleArray(theParams);
+
+
+
+            return theFollow;
+        }
+        public Follow[] newArray(int size) {
+            return new Follow[size];
+        }
+
+
+    };
+
 
 
     //For now we will support up to 4 numerical parameters for the follow's desciption

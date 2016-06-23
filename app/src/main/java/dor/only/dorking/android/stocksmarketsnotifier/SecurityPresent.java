@@ -48,7 +48,9 @@ public class SecurityPresent extends AppCompatActivity implements View.OnLongCli
     private EditText mHigherValueAbsolute,mHigherValuePercents,mLowerValueAbsolute,mLowerValuePercents;
 
 
+    //Some intent keys
     public static final String THE_SECURITY="THE SECURITY";
+    public static final String THE_FOLLOW_AND_STATUS="THE FOLLOW AND STATUS";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -75,6 +77,7 @@ public class SecurityPresent extends AppCompatActivity implements View.OnLongCli
             finish();
         }
 
+
         mStockWebsite=(WebView) findViewById(R.id.web_stock_website_stock_website);
         mStockName=(TextView)findViewById(R.id.text_stock_name);
         mStockName.setText(mTheSecurity.getName());
@@ -96,7 +99,6 @@ public class SecurityPresent extends AppCompatActivity implements View.OnLongCli
                     mRealTimeSecurityData = rtData;
                     mLoadedRTValues = true;
                 }
-
                 loadFollows();
 
 
@@ -126,23 +128,26 @@ public class SecurityPresent extends AppCompatActivity implements View.OnLongCli
 
     //TODO: support more than one follow, for now I will implement just one follow per security
     private void loadFollows(){
-        FollowProvider db=new FollowProvider();
+
+        if(getIntent().hasExtra(THE_FOLLOW_AND_STATUS)){
+            mFollowAndStatus= getIntent().getExtras().getParcelable(THE_FOLLOW_AND_STATUS);
+            updateUIAccordingToFollow();
+            //TODO think about the case where this activity is at the backstack,getting the Intent with the follow which doesn't exist anymore
+            return;
+        }
+
         //TODO take this disk access off the UI thread (Cursor Loader)
         Cursor result=null;
         try {
-            result = getContentResolver().query(FollowContract.buildFollowWithSecurity(mTheSecurity), null, null, null, null);
+            final String selectOnlyActiveFollows="not "+FollowContract.FollowEntry.COLUMN_STATUS+"=\""+FollowAndStatus.STATUS_HISTORY+'"';
+            result = getContentResolver().query(FollowContract.buildFollowWithSecurity(mTheSecurity), null, selectOnlyActiveFollows, null, null);
 
 
             if (result.moveToFirst()) {
-                double lowerValue = result.getDouble(result.getColumnIndex(FollowContract.FollowEntry.COLUMN_PARAM1));
-                double higherValue = result.getDouble(result.getColumnIndex(FollowContract.FollowEntry.COLUMN_PARAM2));
-                mHigherValueAbsolute.setText(String.valueOf(higherValue));
-                mLowerValueAbsolute.setText(String.valueOf(lowerValue));
-                setValuesAccordingToAbsolutePrice();
-                mSendFollowButton.setText("Update Follow");
-                mFollowExistedAlready = true;
-                mDeleteFollowButton.setVisibility(View.VISIBLE);
+
                 mFollowAndStatus=FollowProvider.cursorToFollowAndStatus(result);
+                updateUIAccordingToFollow();
+
 
 
 
@@ -154,6 +159,19 @@ public class SecurityPresent extends AppCompatActivity implements View.OnLongCli
 
 
 
+
+    }
+
+    private void updateUIAccordingToFollow(){
+        double lowerValue = mFollowAndStatus.getFollow().getFollowParams()[0];
+        double higherValue = mFollowAndStatus.getFollow().getFollowParams()[1];
+        mHigherValueAbsolute.setText(String.valueOf(higherValue));
+        mLowerValueAbsolute.setText(String.valueOf(lowerValue));
+        setValuesAccordingToAbsolutePrice();
+        mSendFollowButton.setText("Update Follow");
+        mFollowExistedAlready = true;
+        mDeleteFollowButton.setVisibility(View.VISIBLE);
+        return;
 
     }
 

@@ -4,6 +4,10 @@ import android.content.Context;
 import android.content.SharedPreferences;
 import android.database.Cursor;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+
 import dor.only.dorking.android.stocksmarketsnotifier.DataTypes.Security;
 import dor.only.dorking.android.stocksmarketsnotifier.DataTypes.UserFollows;
 import dor.only.dorking.android.stocksmarketsnotifier.Database.FollowContract;
@@ -92,10 +96,15 @@ public class Constants {
 
     }
 
-    //http://stackoverflow.com/questions/309424/read-convert-an-inputstream-to-a-string
-   public static String convertStreamToString(java.io.InputStream is) {
-        java.util.Scanner s = new java.util.Scanner(is).useDelimiter("\\A");
-        return s.hasNext() ? s.next() : "";
+    //Convert InputStream to string.
+    public static String convertStreamToString(java.io.InputStream is) throws IOException {
+        BufferedReader br = new BufferedReader( new InputStreamReader( is ) );
+        StringBuffer text = new StringBuffer();
+        String line;
+        while((line = br.readLine())!= null )
+        { text.append( line );
+        }
+        return text.toString();
     }
 
 

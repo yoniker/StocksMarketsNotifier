@@ -6,7 +6,6 @@ import android.database.Cursor;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.support.annotation.WorkerThread;
-import android.util.Log;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -19,9 +18,11 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.lang.reflect.Type;
 import java.net.HttpURLConnection;
@@ -39,13 +40,14 @@ import dor.only.dorking.android.stocksmarketsnotifier.DataTypes.FollowAndStatus;
 import dor.only.dorking.android.stocksmarketsnotifier.DataTypes.UserFollows;
 import dor.only.dorking.android.stocksmarketsnotifier.Database.FollowContract;
 import dor.only.dorking.android.stocksmarketsnotifier.Database.FollowProvider;
+import dor.only.dorking.android.stocksmarketsnotifier.Database.UtilityForDatabase;
 
 /**
  * Created by Yoni on 5/23/2016.
  * This class represents the connection to the server, and is in charge of sending requests off the main thread to the server
  */
 public class ConnectionServer {
-    private static final String SERVER_NAME = "46.121.92.236:8080";
+    private static final String SERVER_NAME = "5.102.220.176:8080";
     private static final String USERS = "users";
     private static final String POST = "POST";
     private static final String GET = "GET";
@@ -69,7 +71,7 @@ public class ConnectionServer {
     private static final int CONNECTION_MODE_LOCAL=0;
     private static final int CONNECTION_MODE_HEROKU=1;
 
-    private static final int CONNECTION_MODE_CHOSEN=CONNECTION_MODE_LOCAL;
+    private static final int CONNECTION_MODE_CHOSEN=CONNECTION_MODE_HEROKU;
 
     private Context mContext;
 
@@ -149,8 +151,11 @@ public class ConnectionServer {
             if (!schemeIsHttps) {
 
                 urlConnection = (HttpURLConnection) url.openConnection();
-                urlConnection.setRequestProperty("content-type", "application/json");
-                urlConnection.setRequestProperty("accept","application/json");
+                urlConnection.setDoOutput(true);
+                urlConnection.setDoInput(true);
+                urlConnection.setRequestProperty("Content-Type", "application/json");
+                urlConnection.setRequestProperty("Accept","application/json");
+
                 //TODO setFixedLengthStreamingMode(int)
                 if (method != null && method != "") {
                     urlConnection.setRequestMethod(method);
@@ -158,7 +163,9 @@ public class ConnectionServer {
                 out = new BufferedWriter(new OutputStreamWriter(urlConnection.getOutputStream()));
             } else {
                 urlSConnection = (HttpsURLConnection) url.openConnection();
-                urlSConnection.setRequestProperty("Content-Type", "application/json");
+                urlSConnection.setRequestProperty("content-type", "application/json");
+                urlSConnection.setRequestProperty("accept","application/json");
+                urlSConnection.setDoOutput(true);
                 if (method != null && method != "") {
                     urlSConnection.setRequestMethod(method);
                 }
@@ -168,17 +175,42 @@ public class ConnectionServer {
 
             if(content!=null && !content.equals(""))
             {out.write(content);
-            out.flush();}
+            out.flush();
+            }
 
             if (!schemeIsHttps) {
+                int serverStatusReturned = urlConnection.getResponseCode();
+                if(!isSuccessful(serverStatusReturned)){
+                    InputStream error = urlConnection.getErrorStream();
+                    BufferedReader br = new BufferedReader( new InputStreamReader( error ) );
+                    StringBuffer text = new StringBuffer();
+                    String line;
+
+                    while ( (line = br.readLine())!= null)
+                    text.append( line );
+
+                    line="f";
+
+
+                }
                 in = urlConnection.getInputStream();
+                status = urlConnection.getResponseCode();
+
             } else {
                 in = urlSConnection.getInputStream();
+                status = urlSConnection.getResponseCode();
+
             }
             theResponse = Constants.convertStreamToString(in);
-            status = urlConnection.getResponseCode();
 
-        } catch(Exception e){}
+        } catch(Exception e){
+
+            e.printStackTrace();
+
+            String errorMessage=e.toString();
+
+
+        }
 
         finally{
             if(!isSuccessful(status)){
@@ -288,11 +320,11 @@ public class ConnectionServer {
         task.execute(theUser);
     }
 
-    @WorkerThread
+   /* @WorkerThread
     void writeFollowToDatabase(FollowAndStatus theFollowAndStatus){
 
         //First lets check if the follow is already in the Database..
-        //For now we are assuming that each security has at most one follow so we can find it based on that
+        //For now we are assuming that each security has at most one  follow so we can find it based on that
         //Let's find the security ID first (based on its ticker and stock market).
 
 
@@ -306,13 +338,14 @@ public class ConnectionServer {
 
 
 
-
+        final String selectOnlyActiveFollows="not "+FollowContract.FollowEntry.COLUMN_STATUS+"=\""+FollowAndStatus.STATUS_HISTORY+'"';
         Cursor followSearchResult=mContext.getContentResolver().query(FollowContract.FollowEntry.CONTENT_URI,
                 new String[] {FollowContract.FollowEntry._ID},
-                FollowContract.FollowEntry.COLUMN_SECURITY_ID+"=?",
+                FollowContract.FollowEntry.COLUMN_SECURITY_ID+"=? and "+selectOnlyActiveFollows,
                 new String[]{String.valueOf(securityId)},
                 null);
         if(followSearchResult.moveToFirst()){
+
             long idInContentProvider=followSearchResult.getLong(0);
             if(!(idInContentProvider>0)){
                 Log.e(LOG_TAG,"Found a follow with an illegal id");
@@ -333,7 +366,7 @@ public class ConnectionServer {
             return;
         }
 
-    }
+    }*/
 
 
     //Helper class which will implement a task sending a follow to the server
@@ -351,7 +384,7 @@ public class ConnectionServer {
             public JsonElement serialize(Timestamp src, Type typeOfSrc, JsonSerializationContext context) {
                 TimeZone tz = TimeZone.getTimeZone("UTC");
                 //For info about SimpleDate check out this: https://developer.android.com/reference/java/text/SimpleDateFormat.html
-                DateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZZZZZ");
+                DateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS");
                 df.setTimeZone(tz);
                 String nowAsISO = df.format(src);
 
@@ -413,88 +446,10 @@ public class ConnectionServer {
             } catch (JSONException e){}
 
             //Update the follow in the database to have the server's Uri
-            if(isSuccessful(serverResponse.getStatus())) {writeFollowToDatabase(followSent);}
-
-
-            /*
-
-            try{
-
-                GsonBuilder gsonBuilder = new GsonBuilder();
-                gsonBuilder.registerTypeAdapter(Timestamp.class,new DateTimeSerializer());
-
-                Gson gson = gsonBuilder.create();
-                bodyOfMessage = gson.toJson(theFollow);
-                Uri theUri=Uri.parse(userURI).buildUpon().appendPath(SERVER_FOLLOWS_PATH).build();
-                 theURL= new URL(theUri.toString());
-                if(putFollow){theURL=new URL(receivedURI);
-
-                }
-                urlConnection = (HttpURLConnection) theURL.openConnection();
-                urlConnection.setRequestProperty("Content-Type", "application/json");
-                //TODO setFixedLengthStreamingMode(int)
-                //urlConnection.setDoOutput(true);
-                if(putFollow) {urlConnection.setRequestMethod(PUT);} else {urlConnection.setRequestMethod(POST);}
-                out = new BufferedWriter(new OutputStreamWriter(urlConnection.getOutputStream()));
-                out.write(bodyOfMessage);
-                out.flush();
-                //TODO maybe in the future,if this isn't 200, try to resolve the issue or reschedule...
-                status=urlConnection.getResponseCode();
-                // int status=urlConnection.getResponseCode();
-                in = urlConnection.getInputStream();
-                 theResponse = Constants.convertStreamToString(in);
-                //Here is an example response from the server:
-                //{"links":[{"rel":"self","url":"http://46.121.92.236/securitiesFollowServer/users/1"}],"theMessage":""}
-                JSONObject serverResponse = new JSONObject(theResponse);
-                JSONArray allLinks = serverResponse.getJSONArray(SERVER_LINKS);
-                FollowAndStatus followSent=new FollowAndStatus();
-                followSent.setFollow(theFollow);
-                followSent.setStatus(FollowAndStatus.STATUS_SENT_SUCCESSFULLY);
-                for (int i = 0; i < allLinks.length(); ++i) {
-                    JSONObject link = (JSONObject) allLinks.get(i);
-                    //Let's check if it is the 'self' link, which should give us the URI for the follow
-                    if (link.has(SERVER_REL) && link.has(SERVER_URL)) {
-                        if (link.getString(SERVER_REL).equals(SERVER_SELF)) {
-                            followSent.setFollowURIToServer(link.getString(SERVER_URL));
-
-                        }
-
-                    }
-                }
-
-                //Update the follow in the database to have the server's Uri
-                writeFollowToDatabase(followSent);
-
-
-                return followSent;
-
-
-
-
-
-
-
-                }
-            catch(MalformedURLException e){
-                String h=e.toString();
-
-
+            if(isSuccessful(serverResponse.getStatus())) {
+                UtilityForDatabase.updateFollowStatusAndUriInDatabase(mContext,theFollowandStatus);
             }
 
-            catch(IOException e){
-                String h=e.toString();
-
-            }
-            catch(JSONException e){
-            }
-            finally {
-                //TODO close input/output streams
-                if(!isSuccessful(status)){
-                    String httpMethod=(putFollow?RequestToServer.PUT:RequestToServer.POST);
-                    handleRequestError(bodyOfMessage,theURL.toString(),httpMethod,theResponse,status);
-
-                }
-            } */
 
 
             return null;
@@ -521,34 +476,8 @@ public class ConnectionServer {
                 FollowAndStatus theFollow=params[0];
                 if(theFollow==null){return null;}
                 String followUri=theFollow.getFollowURIToServer();
-
-                HttpURLConnection urlConnection=null;
-                int status=0;
-
-
-                try{
-                    URL theURL= new URL(followUri);
-                    urlConnection = (HttpURLConnection) theURL.openConnection();
-                    //TODO setFixedLengthStreamingMode(int)
-                    //urlConnection.setDoOutput(true);
-                    urlConnection.setRequestProperty("Content-Type", "application/json");
-                    urlConnection.setRequestMethod(DELETE);
-                      status=urlConnection.getResponseCode();
-                    //TODO handle error cases
-
-                }
-
-                catch(IOException e){}
-                finally {
-                    if(!isSuccessful(status)){
-                        handleRequestError("",followUri,RequestToServer.DELETE,"",status);
-
-                    }
-                }
-
-
-
-
+                RequestToServer theRequest=new RequestToServer("",followUri,RequestToServer.DELETE,"",0,0);
+                handleRequest(theRequest);
                 return null;
             }
         };

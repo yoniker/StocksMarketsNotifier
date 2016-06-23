@@ -29,8 +29,6 @@ public class FollowProvider extends ContentProvider {
 
     private FollowsDbHelper mDBHelper;
 
-    private static final long SECURITY_NOT_FOUND=-1;
-    private static final long FOLLOW_NOT_FOUND=-1;
 
     static final int FOLLOW = 100;
     static final int FOLLOW_WITH_ID = 101;
@@ -150,7 +148,7 @@ public class FollowProvider extends ContentProvider {
         }
     }
 
-    private Cursor getFollowsBySecurity(Uri uri,String[] projection) {
+    private Cursor getFollowsBySecurity(Uri uri,String[] projection,String selection,String[] selectionArgs,String sortOrder) {
 
         UrlQuerySanitizer sanitizer = new UrlQuerySanitizer();
         sanitizer.setAllowUnregisteredParamaters(true);
@@ -158,17 +156,29 @@ public class FollowProvider extends ContentProvider {
         String stocksMarketName= sanitizer.getValue(FollowContract.QUERY_KEY_SECURITY_STOCKS_MARKET);
         String ticker= sanitizer.getValue(FollowContract.QUERY_KEY_SECURITY_TICKER);
 
-        String selection= FollowContract.sSecurityDetails;
-        String[] selectionArgs={ticker,stocksMarketName};
+
+        if(selection==null || selection.length()<1) selection="1"; //this is 'true' in sqlite
+               String finalSelection="( "+selection+ " ) and " +FollowContract.sSecurityDetails;
+        String[] finalselectionArgs=new String[selectionArgs==null? 2:selectionArgs.length+2];
+        if(selectionArgs!=null){
+            for(int i=0; i<selectionArgs.length; ++i){
+                finalselectionArgs[i]=selectionArgs[i];
+
+            }
+
+
+        }
+        finalselectionArgs[finalselectionArgs.length-2]=ticker;
+        finalselectionArgs[finalselectionArgs.length-1]=stocksMarketName;
 
         if(stocksMarketName==null||ticker==null||ticker.equals("")){
-            selection=null;
-            selectionArgs=null;
+            finalselectionArgs=selectionArgs;
+            finalSelection=selection;
 
         }
 
 
-        return sFollowBySecurityQueryBuilder.query(mDBHelper.getReadableDatabase(),projection,selection,selectionArgs,null,null,null);
+        return sFollowBySecurityQueryBuilder.query(mDBHelper.getReadableDatabase(),projection,finalSelection,finalselectionArgs,null,null,sortOrder);
 
 
     }
@@ -307,7 +317,7 @@ public class FollowProvider extends ContentProvider {
             }
 
             case FOLLOW_WITH_SECURITY:{
-                retCursor=getFollowsBySecurity(uri,projection);
+                retCursor=getFollowsBySecurity(uri,projection,selection,selectionArgs,sortOrder);
                 break;
 
 

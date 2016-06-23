@@ -15,7 +15,6 @@ import dor.only.dorking.android.stocksmarketsnotifier.DataTypes.FollowAndStatus;
 import dor.only.dorking.android.stocksmarketsnotifier.DataTypes.Security;
 import dor.only.dorking.android.stocksmarketsnotifier.Database.FollowContract;
 import dor.only.dorking.android.stocksmarketsnotifier.Database.FollowProvider;
-import dor.only.dorking.android.stocksmarketsnotifier.SecurityDataGetter.FollowListAdapter;
 
 
 public class FollowsListPresent extends AppCompatActivity implements LoaderManager.LoaderCallbacks<Cursor> {

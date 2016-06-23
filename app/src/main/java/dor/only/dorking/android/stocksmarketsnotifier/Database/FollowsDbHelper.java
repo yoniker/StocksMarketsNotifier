@@ -22,8 +22,6 @@ public class FollowsDbHelper extends SQLiteOpenHelper implements BaseColumns {
     @Override
     public void onCreate(SQLiteDatabase db) {
 
-        //TODO: Make it a content provider  so I can use a Loader / Service later on
-
         final String SQL_CREATE_FOLLOW_TABLE = "CREATE TABLE " +FollowEntry.TABLE_NAME + " (" +
                FollowEntry._ID + " INTEGER PRIMARY KEY," +
                 FollowEntry.COLUMN_SECURITY_ID + " INTEGER, " +

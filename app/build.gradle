@@ -7,7 +7,7 @@ android {
 
     defaultConfig {
         applicationId "dor.only.dorking.android.stocksmarketsnotifier"
-        minSdkVersion 15
+        minSdkVersion 10
         targetSdkVersion 23
         versionCode 1
         versionName "1.0"
@@ -28,4 +28,7 @@ dependencies {
     compile 'com.google.android.gms:play-services:8.4.0'
     compile 'com.google.code.gson:gson:2.6.2'
     compile 'com.mcxiaoke.volley:library:1.0.19'
+
+
+
 }

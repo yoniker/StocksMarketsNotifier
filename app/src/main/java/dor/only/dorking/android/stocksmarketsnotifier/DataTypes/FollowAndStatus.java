@@ -1,9 +1,13 @@
 package dor.only.dorking.android.stocksmarketsnotifier.DataTypes;
 
+import android.os.Parcel;
+import android.os.Parcelable;
+
 /**
  * Created by Yoni on 6/1/2016.
  */
-public class FollowAndStatus {
+public class FollowAndStatus implements Parcelable {
+
     private Follow follow;
     private String Status;
 
@@ -11,6 +15,40 @@ public class FollowAndStatus {
 
     private String followURIToServer;
     private double priceStarted;
+
+
+    public int describeContents() {
+        return 0;
+    }
+
+    public void writeToParcel(Parcel out, int flags) {
+        getFollow().writeToParcel(out,flags);
+        out.writeString(getFollowURIToServer());
+        out.writeDouble(getPriceStarted());
+        out.writeString(getStatus());
+    }
+
+    public static final Parcelable.Creator<FollowAndStatus> CREATOR
+            = new Parcelable.Creator<FollowAndStatus>() {
+        public FollowAndStatus createFromParcel(Parcel in) {
+            FollowAndStatus theFollowAndStatus= new FollowAndStatus();
+            Follow theFollow=in.readParcelable(Follow.class.getClassLoader());
+            theFollowAndStatus.setFollow(theFollow);
+            theFollowAndStatus.setFollowURIToServer(in.readString());
+            theFollowAndStatus.setPriceStarted(in.readDouble());
+            theFollowAndStatus.setStatus(in.readString());
+
+
+            return theFollowAndStatus;
+        }
+        public FollowAndStatus[] newArray(int size) {
+            return new FollowAndStatus[size];
+        }
+
+
+    };
+
+
 
 
 
@@ -21,7 +59,7 @@ public class FollowAndStatus {
     //We tried to send it and failed- TODO run a service if we failed and go over the entire list of failed to send follows
     public final static String STATUS_CONNECTION_FAILED="connection failed";
     //If it was already notified then just save it as part of the "history".
-    public final static String STATUS_HISTORY="history";
+    public final static String STATUS_HISTORY="This follow was notified";
 
 
     public String getFollowURIToServer() {
