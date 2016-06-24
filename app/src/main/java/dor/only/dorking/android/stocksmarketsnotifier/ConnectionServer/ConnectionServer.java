@@ -425,19 +425,16 @@ public class ConnectionServer {
             String url=putFollow?receivedURI:theUriForNewFollows.toString();
             RequestToServer theRequest=new RequestToServer(bodyOfMessage,url,httpMethod,"",0,0);
             ServerResponse serverResponse=handleRequest(theRequest);
-            FollowAndStatus followSent=null;
+            String uriToFollowInServer=null;
             try {
                 JSONObject serverResponseInJson = new JSONObject(serverResponse.getBody());
                 JSONArray allLinks = serverResponseInJson.getJSONArray(SERVER_LINKS);
-                followSent = new FollowAndStatus();
-                followSent.setFollow(theFollow);
-                followSent.setStatus(FollowAndStatus.STATUS_SENT_SUCCESSFULLY);
                 for (int i = 0; i < allLinks.length(); ++i) {
                     JSONObject link = (JSONObject) allLinks.get(i);
                     //Let's check if it is the 'self' link, which should give us the URI for the follow
                     if (link.has(SERVER_REL) && link.has(SERVER_URL)) {
                         if (link.getString(SERVER_REL).equals(SERVER_SELF)) {
-                            followSent.setFollowURIToServer(link.getString(SERVER_URL));
+                            uriToFollowInServer=link.getString(SERVER_URL);
 
                         }
 
@@ -447,7 +444,11 @@ public class ConnectionServer {
 
             //Update the follow in the database to have the server's Uri
             if(isSuccessful(serverResponse.getStatus())) {
-                UtilityForDatabase.updateFollowStatusAndUriInDatabase(mContext,theFollowandStatus);
+                //Update the follow URI to server, and its status
+                ContentValues values=new ContentValues();
+                values.put(FollowContract.FollowEntry.COLUMN_URI_TO_SERVER,uriToFollowInServer);
+                values.put(FollowContract.FollowEntry.COLUMN_STATUS,FollowAndStatus.STATUS_SENT_SUCCESSFULLY);
+                UtilityForDatabase.updateFollowInDatabase(mContext,theFollowandStatus,values);
             }
 
 

@@ -216,6 +216,7 @@ public class FollowProvider extends ContentProvider {
         followAndStatusReturn.setFollowURIToServer(theCursor.getString(theCursor.getColumnIndex(FollowEntry.COLUMN_URI_TO_SERVER)));
         followAndStatusReturn.setStatus(theCursor.getString(theCursor.getColumnIndex(FollowEntry.COLUMN_STATUS)));
         followAndStatusReturn.setPriceStarted(theCursor.getDouble(theCursor.getColumnIndex(FollowEntry.COLUMN_PRICE_STARTED)));
+        followAndStatusReturn.setFinalPrice(theCursor.getDouble(theCursor.getColumnIndex(FollowEntry.COLUMN_FINAL_PRICE)));
 
         return followAndStatusReturn;
 
@@ -266,6 +267,7 @@ public class FollowProvider extends ContentProvider {
         values.put(FollowEntry.COLUMN_PRICE_STARTED,theFollowAndStatus.getPriceStarted());
         values.put(FollowEntry.COLUMN_STATUS,theFollowAndStatus.getStatus());
         values.put(FollowEntry.COLUMN_URI_TO_SERVER,theFollowAndStatus.getFollowURIToServer());
+        values.put(FollowEntry.COLUMN_FINAL_PRICE,theFollowAndStatus.getFinalPrice());
         return values;
 
     }

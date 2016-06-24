@@ -44,6 +44,7 @@ public class SecurityPresent extends AppCompatActivity implements View.OnLongCli
     private Button mDeleteFollowButton;
     private boolean mFollowExistedAlready=false;
     private FollowAndStatus mFollowAndStatus=null;
+    private String mThemode="";
 
     private EditText mHigherValueAbsolute,mHigherValuePercents,mLowerValueAbsolute,mLowerValuePercents;
 
@@ -51,36 +52,79 @@ public class SecurityPresent extends AppCompatActivity implements View.OnLongCli
     //Some intent keys
     public static final String THE_SECURITY="THE SECURITY";
     public static final String THE_FOLLOW_AND_STATUS="THE FOLLOW AND STATUS";
+    public static final String MODE="MODE";
+    //Some possible modes
+    //This one is for the 'active' follows
+    public static final String ACTIVE= "ACTIVE";
+    //The user got a notification for the follow
+    public static final String NOTIFIED= "NOTIFIED";
+    //The follow was archived
+    public static final String ARCHIVED="ARCHIVED";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_security_present);
+        //First let's check if we need to load data from Intent, and only then from a previously saved state
+        if(getIntent().hasExtra(THE_SECURITY)) {
+            mTheSecurity = getIntent().getParcelableExtra(THE_SECURITY);
+            mThemode = getIntent().getStringExtra(MODE);
+        }
+
+        else if(savedInstanceState!=null){
+            mTheSecurity=savedInstanceState.getParcelable(THE_SECURITY);
+            mThemode=savedInstanceState.getString(MODE);
+
+        } else{
+
+            //should never happen: There is no intent nor saved state, so it seems that someone called the activity without information about a security whatsoever.
+            finish();
+        }
         mRealTimeData=(TextView)findViewById(R.id.text_rtinfo);
         mFollowDetails=(LinearLayout)findViewById(R.id.llayout_follow_details);
-        mFollowDetails.setVisibility(View.GONE);
+
         (mHigherValueAbsolute=(EditText)findViewById(R.id.editText_higher_value_absolute)).setOnFocusChangeListener(this);
         (mHigherValuePercents=(EditText)findViewById(R.id.editText_higher_value_percents)).setOnFocusChangeListener(this);
         (mLowerValueAbsolute=(EditText)findViewById(R.id.editText_lower_value_absolute)).setOnFocusChangeListener(this);
         (mLowerValuePercents=(EditText)findViewById(R.id.editText_lower_value_percents)).setOnFocusChangeListener(this);
         (mSendFollowButton=(Button)findViewById(R.id.button_start_follow)).setOnClickListener(this);
         (mDeleteFollowButton=(Button) findViewById(R.id.button_stop_follow)).setOnClickListener(this);
-
-
         mProgressBarRealTimeValue=(ProgressBar)findViewById(R.id.progressbar_real_time_values);
-        mProgressBarRealTimeValue.setVisibility(View.VISIBLE);
-
-
-        mTheSecurity=getIntent().getExtras().getParcelable(THE_SECURITY);
-        if(mTheSecurity==null){
-            //TODO better error handling
-            finish();
-        }
-
-
         mStockWebsite=(WebView) findViewById(R.id.web_stock_website_stock_website);
         mStockName=(TextView)findViewById(R.id.text_stock_name);
         mStockName.setText(mTheSecurity.getName());
+
+
+
+        mStockWebsite.getSettings().setLoadWithOverviewMode(true);
+        mStockWebsite.getSettings().setUseWideViewPort(true);
+        mStockWebsite.getSettings().setBuiltInZoomControls(true);
+        mStockWebsite.getSettings().setDisplayZoomControls(false);
+        mStockWebsite.setOnLongClickListener(this);
+
+
+
+
+    }
+
+
+    @Override
+    protected void onSaveInstanceState(Bundle outState) {
+       outState.putParcelable(THE_SECURITY,mTheSecurity);
+        outState.putString(MODE,mThemode);
+        super.onSaveInstanceState(outState);
+    }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+        //TODO reload the information only if a certain time has passed (we can let the user decide under settings).
+        mProgressBarRealTimeValue.setVisibility(View.VISIBLE);
+        mFollowDetails.setVisibility(View.GONE);
+
+
+
+
         AsyncTask<Security,Void,RealTimeSecurityData> getDataFromYahooTask=new AsyncTask<Security, Void, RealTimeSecurityData>() {
             @Override
             protected RealTimeSecurityData doInBackground(Security... params) {
@@ -114,23 +158,16 @@ public class SecurityPresent extends AppCompatActivity implements View.OnLongCli
 
 
         mStockWebsite.loadUrl(mTheSecurity.getMoreInfoUri());
-        mStockWebsite.getSettings().setLoadWithOverviewMode(true);
-        mStockWebsite.getSettings().setUseWideViewPort(true);
-        mStockWebsite.getSettings().setBuiltInZoomControls(true);
-        mStockWebsite.getSettings().setDisplayZoomControls(false);
-        mStockWebsite.setOnLongClickListener(this);
-
-
 
 
     }
-
 
     //TODO: support more than one follow, for now I will implement just one follow per security
     private void loadFollows(){
 
         if(getIntent().hasExtra(THE_FOLLOW_AND_STATUS)){
-            mFollowAndStatus= getIntent().getExtras().getParcelable(THE_FOLLOW_AND_STATUS);
+            mFollowAndStatus=new FollowAndStatus();
+            mFollowAndStatus.setFollow( (Follow)getIntent().getExtras().getParcelable(THE_FOLLOW_AND_STATUS));
             updateUIAccordingToFollow();
             //TODO think about the case where this activity is at the backstack,getting the Intent with the follow which doesn't exist anymore
             return;
@@ -139,8 +176,15 @@ public class SecurityPresent extends AppCompatActivity implements View.OnLongCli
         //TODO take this disk access off the UI thread (Cursor Loader)
         Cursor result=null;
         try {
-            final String selectOnlyActiveFollows="not "+FollowContract.FollowEntry.COLUMN_STATUS+"=\""+FollowAndStatus.STATUS_HISTORY+'"';
-            result = getContentResolver().query(FollowContract.buildFollowWithSecurity(mTheSecurity), null, selectOnlyActiveFollows, null, null);
+            final String selectOnlyActiveFollows="not "+FollowContract.FollowEntry.COLUMN_STATUS+"=\""+FollowAndStatus.STATUS_NOTIFIED+"\""+
+                    " and not "+FollowContract.FollowEntry.COLUMN_STATUS+"=\""+FollowAndStatus.STATUS_ARCHIVED+'"';
+            final String selectOnlyNotifications=FollowContract.FollowEntry.COLUMN_STATUS+"=\""+FollowAndStatus.STATUS_NOTIFIED+"\"";
+
+            String selectStatement="";
+            if(mThemode.equals(ACTIVE)){selectStatement=selectOnlyActiveFollows;};
+            if(mThemode.equals(NOTIFIED)){selectStatement=selectOnlyNotifications;};
+
+            result = getContentResolver().query(FollowContract.buildFollowWithSecurity(mTheSecurity), null, selectStatement, null, null);
 
 
             if (result.moveToFirst()) {

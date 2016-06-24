@@ -2,6 +2,7 @@ package dor.only.dorking.android.stocksmarketsnotifier.gcm;
 
 import android.app.NotificationManager;
 import android.app.PendingIntent;
+import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
@@ -27,12 +28,16 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.lang.reflect.Type;
+import java.sql.Timestamp;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
 import dor.only.dorking.android.stocksmarketsnotifier.ChooseStockActivity;
 import dor.only.dorking.android.stocksmarketsnotifier.DataTypes.Follow;
+import dor.only.dorking.android.stocksmarketsnotifier.DataTypes.FollowAndStatus;
+import dor.only.dorking.android.stocksmarketsnotifier.Database.FollowContract.FollowEntry;
+import dor.only.dorking.android.stocksmarketsnotifier.Database.UtilityForDatabase;
 import dor.only.dorking.android.stocksmarketsnotifier.R;
 import dor.only.dorking.android.stocksmarketsnotifier.SecurityPresent;
 
@@ -40,10 +45,10 @@ public class MyGcmListenerService extends GcmListenerService {
 
     private static final String TAG = "MyGcmListenerService";
 
-    private static final String EXTRA_DATA = "data";
     private static final String EXTRA_MESSAGE="message";
 
-    public static final int NOTIFICATION_ID = 1;
+    public static final int FOLLOW_NOTIFICATION_ID=0;
+    public static final int MESSAGE_NOTIFICATION_ID=1;
 
 
     private static class gsonUTCdateAdapter implements JsonSerializer<Date>,JsonDeserializer<Date> {
@@ -82,6 +87,7 @@ public class MyGcmListenerService extends GcmListenerService {
      */
     @Override
     public void onMessageReceived(String from, Bundle data) {
+
 
 
 
@@ -137,7 +143,6 @@ public class MyGcmListenerService extends GcmListenerService {
 
         if(!isJson(theMessage)){
             handleSimpleMessageFromServer(theMessage);
-
         }
 
 
@@ -159,10 +164,19 @@ public class MyGcmListenerService extends GcmListenerService {
 
             Intent launchSecurityShow=new Intent(this, SecurityPresent.class);
             launchSecurityShow.putExtra(SecurityPresent.THE_SECURITY,theFollow.getTheSecurity());
-            launchSecurityShow.putExtra(SecurityPresent.THE_FOLLOW_AND_STATUS,theFollow);
-
+            launchSecurityShow.putExtra(SecurityPresent.MODE,SecurityPresent.NOTIFIED);
+            //launchSecurityShow.putExtra(SecurityPresent.THE_FOLLOW_AND_STATUS,theFollow);
             PendingIntent contentIntent =
-                    PendingIntent.getActivity(this, 0, launchSecurityShow, 0);
+                    PendingIntent.getActivity(this, 0, launchSecurityShow, PendingIntent.FLAG_ONE_SHOT);
+            FollowAndStatus theFollowWhichWasReceived=new FollowAndStatus();
+            theFollowWhichWasReceived.setFollow(theFollow);
+            ContentValues valuesToUpdate=new ContentValues();
+            valuesToUpdate.put(FollowEntry.COLUMN_FINAL_PRICE,finalPrice);
+            Timestamp now=new Timestamp(System.currentTimeMillis());
+            valuesToUpdate.put(FollowEntry.COLUMN_DATE_EXPIRY,now.toString());
+            valuesToUpdate.put(FollowEntry.COLUMN_STATUS,FollowAndStatus.STATUS_NOTIFIED);
+            //TODO: take the following off the main thread
+            UtilityForDatabase.updateFollowInDatabase(this,theFollowWhichWasReceived,valuesToUpdate);
 
             int drawableArrow= direction.equals(UP_VALUE)?R.drawable.uparrow:R.drawable.downarrow;
             int iconArrow=direction.equals(UP_VALUE)?R.drawable.ic_stat_uparrow:R.drawable.ic_stat_downarrow;
@@ -187,7 +201,7 @@ public class MyGcmListenerService extends GcmListenerService {
                             .setLights(notificationColor, 1000, 1000)
                             .setPriority(NotificationCompat.PRIORITY_HIGH);
             mBuilder.setContentIntent(contentIntent);
-            mNotificationManager.notify(0, mBuilder.build());
+            mNotificationManager.notify(FOLLOW_NOTIFICATION_ID, mBuilder.build());
         } catch(JSONException e){}
     }
 
@@ -232,7 +246,7 @@ public class MyGcmListenerService extends GcmListenerService {
                         .setPriority(NotificationCompat.PRIORITY_HIGH);
         NotificationManager mNotificationManager =
                 (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
-        mNotificationManager.notify(0, mBuilder.build());
+        mNotificationManager.notify(MESSAGE_NOTIFICATION_ID, mBuilder.build());
 
     }
 

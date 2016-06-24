@@ -11,7 +11,7 @@ import dor.only.dorking.android.stocksmarketsnotifier.Database.FollowContract.*;
  * Created by Yoni on 6/1/2016.
  */
 public class FollowsDbHelper extends SQLiteOpenHelper implements BaseColumns {
-    private static final int DATABASE_VERSION = 2;
+    private static final int DATABASE_VERSION = 3;
     static final String DATABASE_NAME = "follows.db";
 
     public FollowsDbHelper(Context context) {
@@ -31,6 +31,7 @@ public class FollowsDbHelper extends SQLiteOpenHelper implements BaseColumns {
                 FollowEntry.COLUMN_PARAM3 + " REAL NOT NULL, " +
                 FollowEntry.COLUMN_PARAM4 + " REAL NOT NULL, " +
                 FollowEntry.COLUMN_PRICE_STARTED + " REAL NOT NULL, " +
+                FollowEntry.COLUMN_FINAL_PRICE+" REAL NOT NULL,"+
                 FollowEntry.COLUMN_DATE_STARTED + " INTEGER,"+
                 FollowEntry.COLUMN_DATE_EXPIRY+" INTEGER,"+
                 FollowEntry.COLUMN_STATUS + " TEXT, " +

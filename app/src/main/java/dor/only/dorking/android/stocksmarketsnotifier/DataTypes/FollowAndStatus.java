@@ -10,11 +10,9 @@ public class FollowAndStatus implements Parcelable {
 
     private Follow follow;
     private String Status;
-
-
-
     private String followURIToServer;
     private double priceStarted;
+    private double finalPrice=-1;
 
 
     public int describeContents() {
@@ -32,7 +30,8 @@ public class FollowAndStatus implements Parcelable {
             = new Parcelable.Creator<FollowAndStatus>() {
         public FollowAndStatus createFromParcel(Parcel in) {
             FollowAndStatus theFollowAndStatus= new FollowAndStatus();
-            Follow theFollow=in.readParcelable(Follow.class.getClassLoader());
+            Follow theFollow=//in.readParcelable(Follow.class.getClassLoader()); //TODO this throws an exception- understand why.
+                    Follow.CREATOR.createFromParcel(in);
             theFollowAndStatus.setFollow(theFollow);
             theFollowAndStatus.setFollowURIToServer(in.readString());
             theFollowAndStatus.setPriceStarted(in.readDouble());
@@ -59,7 +58,8 @@ public class FollowAndStatus implements Parcelable {
     //We tried to send it and failed- TODO run a service if we failed and go over the entire list of failed to send follows
     public final static String STATUS_CONNECTION_FAILED="connection failed";
     //If it was already notified then just save it as part of the "history".
-    public final static String STATUS_HISTORY="This follow was notified";
+    public final static String STATUS_NOTIFIED="This follow was notified";
+    public final static String STATUS_ARCHIVED="archive";
 
 
     public String getFollowURIToServer() {
@@ -92,5 +92,13 @@ public class FollowAndStatus implements Parcelable {
 
     public void setStatus(String status) {
         Status = status;
+    }
+
+    public double getFinalPrice() {
+        return finalPrice;
+    }
+
+    public void setFinalPrice(double finalPrice) {
+        this.finalPrice = finalPrice;
     }
 }

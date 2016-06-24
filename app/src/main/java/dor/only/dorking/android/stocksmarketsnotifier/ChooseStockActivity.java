@@ -57,6 +57,7 @@ public class ChooseStockActivity extends AppCompatActivity {
                 Intent showSecurity=new Intent(getApplicationContext(),SecurityPresent.class);
                 Security theSecurity=(Security)parent.getItemAtPosition(position);
                 showSecurity.putExtra(SecurityPresent.THE_SECURITY,theSecurity);
+                showSecurity.putExtra(SecurityPresent.MODE,SecurityPresent.ACTIVE);
                 startActivity(showSecurity);
             }
         });

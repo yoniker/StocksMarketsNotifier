@@ -73,6 +73,17 @@ public class FollowsListPresent extends AppCompatActivity implements LoaderManag
                 FollowAndStatus theFollow= FollowProvider.cursorToFollowAndStatus(cursor);
                 Security theSecurity=theFollow.getFollow().getTheSecurity();
                 showSecurity.putExtra(SecurityPresent.THE_SECURITY,theSecurity);
+                String modeOfOperation="";
+                if(theFollow.getStatus().equals(FollowAndStatus.STATUS_NOTIFIED)){modeOfOperation=SecurityPresent.NOTIFIED;}
+                if(theFollow.getStatus().equals(FollowAndStatus.STATUS_ARCHIVED)){modeOfOperation=SecurityPresent.ARCHIVED;}
+                if(theFollow.getStatus().equals(FollowAndStatus.STATUS_SENT)||
+                        theFollow.getStatus().equals(FollowAndStatus.STATUS_CONNECTION_FAILED)||
+                        theFollow.getStatus().equals(FollowAndStatus.STATUS_SENT_SUCCESSFULLY)){
+                    modeOfOperation=SecurityPresent.ACTIVE;
+
+                }
+                showSecurity.putExtra(SecurityPresent.MODE,modeOfOperation);
+
                 startActivity(showSecurity);
             }
         });

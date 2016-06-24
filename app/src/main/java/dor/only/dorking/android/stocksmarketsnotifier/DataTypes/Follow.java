@@ -32,13 +32,15 @@ public class Follow implements Parcelable {
             = new Parcelable.Creator<Follow>() {
         public Follow createFromParcel(Parcel in) {
             Follow theFollow= new Follow();
-            Security theSecurity=in.readParcelable(Security.class.getClassLoader());
+            Security theSecurity=//in.readParcelable(Security.class.getClassLoader()); TODO this throws an exception-why?
+            Security.CREATOR.createFromParcel(in);
             theFollow.setTheSecurity(theSecurity);
             theFollow.setFollowType(in.readString());
             theFollow.setStart(new Timestamp(in.readLong()));
             theFollow.setExpiry(new Timestamp(in.readLong()));
             double[] theParams=new double[Follow.NUMBER_OF_PARAMETERS];
             in.readDoubleArray(theParams);
+            theFollow.setFollowParams(theParams);
 
 
 

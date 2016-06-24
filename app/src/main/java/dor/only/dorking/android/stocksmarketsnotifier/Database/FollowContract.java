@@ -112,6 +112,7 @@ public class FollowContract {
         //What is the status of the follow?
         public static final String COLUMN_STATUS="status";
         public static final String COLUMN_URI_TO_SERVER="follow_uri_to_server";
+        public static final String COLUMN_FINAL_PRICE="final_price";
 
 
 
